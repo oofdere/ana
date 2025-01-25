@@ -1,11 +1,15 @@
 use serde::{Deserialize, Serialize};
 use subenum::subenum;
 
-schema_type!(AtpNull, "null", {}, 
+schema_type!(
+    AtpNull,
+    "null",
+    {},
     r###"{
         "type": "null",
         "description": "example"
-    }"###);
+    }"###
+);
 
 schema_type!(AtpBoolean, "boolean", {
     default: Option<bool>,
@@ -74,7 +78,7 @@ pub enum AtpTypes {
     Record(AtpRecord),
     Query(AtpQuery),
     Procedure(AtpProcedure),
-    Subscription(AtpSubscription)
+    Subscription(AtpSubscription),
 }
 
 mod test {
@@ -84,11 +88,21 @@ mod test {
 
     #[test]
     fn integ() {
-        let a: Field = serde_json::from_str(r###"{
+        let a: Field = serde_json::from_str(
+            r###"{
               "type": "boolean",
               "description": "Is this oekaki NSFW?"
-            }"###).unwrap();
+            }"###,
+        )
+        .unwrap();
 
-        assert_eq!(a, AtpTypes::Boolean(AtpBoolean { description: Some(String::from("Is this oekaki NSFW?")), constant: None, default: None }));
+        assert_eq!(
+            a,
+            AtpTypes::Boolean(AtpBoolean {
+                description: Some(String::from("Is this oekaki NSFW?")),
+                constant: None,
+                default: None
+            })
+        );
     }
 }
