@@ -1,3 +1,4 @@
+
 #[macro_export]
 macro_rules! create_type_test {
     ($type:ty, $example:expr) => {
@@ -32,10 +33,11 @@ macro_rules! create_type_test {
 #[macro_export]
 macro_rules! schema_type {
     ($name:ident, $type:literal, { $($body:tt)* }, $example:literal) => {
+        #[skip_serializing_none]
         #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
         #[serde(tag = "type")]
         #[serde(rename = $type)]
-        #[serde(rename_all = "lowercase")]
+        #[serde(rename_all = "camelCase")]
         pub struct $name {
             description: Option<String>,
             $($body)*
