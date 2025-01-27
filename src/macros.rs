@@ -1,4 +1,3 @@
-
 #[macro_export]
 macro_rules! create_type_test {
     ($type:ty, $example:expr) => {
@@ -38,7 +37,9 @@ macro_rules! schema_type {
         #[serde(tag = "type")]
         #[serde(rename = $type)]
         #[serde(rename_all = "camelCase")]
+        //#[serde(deny_unknown_fields)] I'd like to but this breaks tagging :death:
         pub struct $name {
+            /// short, usually only a sentence or two
             description: Option<String>,
             $($body)*
         }

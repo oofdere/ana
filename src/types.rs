@@ -53,6 +53,7 @@ enum StringFormats {
     Handle,
     Nsid,
     Tid,
+    Uri,
     RecordKey,
     Language
 }
@@ -438,6 +439,8 @@ pub enum AtpTypes {
 }
 
 mod test {
+    use serde::{Serialize, Deserialize};
+
     use crate::types::{AtpBoolean, Field};
 
     use super::AtpTypes;
@@ -460,5 +463,19 @@ mod test {
                 default: None
             })
         );
+    }
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+    #[serde(tag = "type")]
+    #[serde(deny_unknown_fields)]
+    struct Test {
+      description: Option<String>,
+    }
+
+    #[test]
+    fn test() {
+        let test = Test { description: None };
+        let test_string = serde_json::to_string(&test).unwrap();
+        let _: Test = serde_json::from_str(&test_string).unwrap();
     }
 }
