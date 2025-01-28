@@ -15,8 +15,10 @@ schema_type!(
 );
 
 schema_type!(AtpBoolean, "boolean", {
+    /// a default value for this field
     default: Option<bool>,
     #[serde(rename="const")]
+    /// a fixed (constant) value for this field
     constant: Option<bool>
 }, r###"{
     "type": "boolean",
@@ -26,11 +28,16 @@ schema_type!(AtpBoolean, "boolean", {
 }"###);
 
 schema_type!(AtpInteger, "integer", {
+    /// minimum acceptable value
     minimum: Option<i32>,
+    /// maximum acceptable value
     maximum: Option<i32>,
+    /// a closed set of allowed values
     #[serde(rename="enum")]
     enumeration: Option<Vec<i32>>,
+    /// a default value for this field
     default: Option<i32>,
+    /// a fixed (constant) value for this field
     #[serde(rename="const")]
     constant: Option<i32>
 }, r###"{
@@ -59,15 +66,24 @@ enum StringFormats {
 }
 
 schema_type!(AtpString, "string", {
+    /// string format restriction
     format: Option<StringFormats>,
+    /// maximum length of value, in UTF-8 bytes
     max_length: Option<u32>,
+    /// minimum length of value, in UTF-8 bytes
     min_length: Option<u32>,
+    /// maximum length of value, counted as Unicode Grapheme Clusters
     max_graphemes: Option<u32>,
+    /// minimum length of value, counted as Unicode Grapheme Clusters
     min_graphemes: Option<u32>,
+    /// a set of suggested or common values for this field. Values are not limited to this set (aka, not a closed enum).
     known_values: Option<Vec<String>>,
+    /// a closed set of allowed values
     #[serde(rename="enum")]
     enumeration: Option<Vec<String>>,
+    /// a default value for this field
     default: Option<String>,
+    /// a fixed (constant) value for this field
     #[serde(rename="const")]
     constant: Option<String>
 }, r###"{
@@ -84,7 +100,9 @@ schema_type!(AtpString, "string", {
 }"###);
 
 schema_type!(AtpBytes, "bytes", {
+    /// minimum size of value, as raw bytes with no encoding
     min_length: Option<u32>,
+    /// maximum size of value, as raw bytes with no encoding
     max_length: Option<u32>
 }, r###"{
     "type": "bytes",
@@ -99,7 +117,9 @@ schema_type!(AtpCidLink, "cid-link", {}, r###"{
 }"###);
 
 schema_type!(AtpBlob, "blob", {
+    /// list of acceptable MIME types. Each may end in `*` as a glob pattern (eg, `image/*`). Use `*/*` to indicate that any MIME type is accepted.
     accept: Option<Vec<String>>,
+    /// maximum size in bytes
     max_size: Option<u32>
 }, r###"{
     "type": "blob",
@@ -109,8 +129,11 @@ schema_type!(AtpBlob, "blob", {
 }"###);
 
 schema_type!(AtpArray, "array", {
+    /// describes the schema elements of this array
     items: Box<AtpTypes>,
+    /// minimum count of elements in array
     min_length: Option<u32>,
+    /// maximum count of elements in array
     max_length: Option<u32>
 }, r###"{
             "type": "array",
@@ -123,8 +146,11 @@ schema_type!(AtpArray, "array", {
           }"###);
 
 schema_type!(AtpObject, "object", {
+    /// defines the properties (fields) by name, each with their own schema
     properties: HashMap<String, AtpTypes>,
+    /// indicates which properties are required
     required: Option<Vec<String>>,
+    /// indicates which properties can have null as a value
     nullable: Option<Vec<String>>
 }, r###"{
         "type": "object",
@@ -175,7 +201,9 @@ enum ParamProps {
 }
 
 schema_type!(AtpParams, "params", {
+    /// same semantics as field on `object`
     required: Option<Vec<String>>,
+    /// similar to properties under `object`, but can only include the types `boolean`, `integer`, `string`, and `unknown`; or an `array` of one of these types
     properties: HashMap<String, ParamProps>
 }, r###"{
 				"type": "params",
@@ -199,6 +227,7 @@ schema_type!(AtpToken, "token", {}, r###"{
 }"###);
 
 schema_type!(AtpRef, "ref", {
+    /// reference to another schema definition
     #[serde(rename="ref")]
     reference: String
 }, r###"{
@@ -208,7 +237,9 @@ schema_type!(AtpRef, "ref", {
 }"###);
 
 schema_type!(AtpUnion, "union", {
+    /// references to schema definitions
     refs: Vec<String>,
+    /// indicates if a union is "open" or "closed". defaults to `false` (open union)
     closed: Option<bool>
 }, r###"{
     "type": "union",
@@ -222,7 +253,9 @@ schema_type!(AtpUnknown, "unknown", {}, r###"{
 }"###);
 
 schema_type!(AtpRecord, "record", {
+    /// specifies the Record Key `type` (e.g. tid)
     key: String, // def make an enum for this
+    /// a schema definition with type `object`, which specifies this type of record
     record: AtpObject
 }, r###"{
       "type": "record",
@@ -266,8 +299,8 @@ schema_type!(AtpRecord, "record", {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[serde(tag = "type")]
 #[serde(rename_all = "lowercase")]
-
-enum RpcSchema {
+/// schema definition, either an object, a ref, or a union of refs. Used to describe JSON encoded responses, though schema is optional even for JSON responses.
+enum RpcSchema {  
     Object(AtpObject),
     Ref(AtpRef),
     Union(AtpUnion)
@@ -284,13 +317,18 @@ struct RpcIO {
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 struct RpcError {
+    /// short name for the error type, with no whitespace
     name: String,
+    /// short description, one or two sentences
     description: Option<String>,
 }
 
     schema_type!(AtpQuery, "query", {
+    /// a schema definition with type `params`, describing the HTTP query parameters for this endpoint
     parameters: Option<AtpParams>,
+    /// describes the HTTP response body
     output: Option<RpcIO>,
+    /// set of string error codes which might be returned
     errors: Option<Vec<RpcError>>
 }, r###"{
       "type": "query",
@@ -324,9 +362,13 @@ struct RpcError {
     }"###);
 
 schema_type!(AtpProcedure, "procedure", {
+    /// a schema definition with type `params`, describing the HTTP query parameters for this endpoint
     parameters: Option<AtpParams>,
+    /// describes the HTTP response body
     output: Option<RpcIO>,
+    /// describes HTTP request body schema, with the same format as the `output` field
     input: Option<RpcIO>,
+    /// set of string error codes which might be returned
     errors: Option<Vec<RpcError>>
 }, r###"{
       "type": "procedure",
