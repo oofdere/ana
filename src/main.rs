@@ -1,17 +1,14 @@
-use std::{collections::HashMap, fs};
-
-use ariadne::{Color, Config, Label, Report, ReportKind, Source};
-use serde::{Serialize, Deserialize};
-use serde_json::Error;
 use format_serde_error::SerdeError;
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fs};
 
 #[macro_use]
 mod macros;
 
-pub mod types;
+pub mod lexicon;
 
 use clap::Parser;
-use types::AtpTypes;
+use lexicon::AtpTypes;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -32,19 +29,20 @@ pub struct Lexicon {
     /// short overview of the Lexicon, usually one or two sentences
     description: Option<String>,
     /// set of definitions, each with a distinct name (key)
-    defs: HashMap<String, AtpTypes>
+    defs: HashMap<String, AtpTypes>,
 }
 
 fn main() {
     let args = Args::parse();
 
     let src = fs::read_to_string(&args.path).unwrap();
-    let a: Result<Lexicon, SerdeError> = serde_json::from_str(&src).map_err(|err| SerdeError::new(src, err));
+    let a: Result<Lexicon, SerdeError> =
+        serde_json::from_str(&src).map_err(|err| SerdeError::new(src, err));
 
     let a = dbg!(a);
 
     match a {
-        Ok(a) => println!("{a:?}"),
+        Ok(a) => println!("{a:#?}"),
         Err(err) => eprintln!("{err}"),
     };
     // match a {

@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use serde::{Deserialize, Serialize};
-use subenum::subenum;
 use serde_with::skip_serializing_none;
+use subenum::subenum;
 
 schema_type!(
     AtpNull,
@@ -49,7 +49,7 @@ schema_type!(AtpInteger, "integer", {
     "enum": [0, 1]
 }"###);
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, derive_display_from_debug::Display)]
 #[serde(rename_all = "kebab-case")]
 enum StringFormats {
     AtIdentifier,
@@ -62,7 +62,7 @@ enum StringFormats {
     Tid,
     Uri,
     RecordKey,
-    Language
+    Language,
 }
 
 schema_type!(AtpString, "string", {
@@ -111,10 +111,15 @@ schema_type!(AtpBytes, "bytes", {
     "maxLength": 512
 }"###);
 
-schema_type!(AtpCidLink, "cid-link", {}, r###"{
+schema_type!(
+    AtpCidLink,
+    "cid-link",
+    {},
+    r###"{
     "type": "cid-link",
     "description": "idk what this really does tbqh"
-}"###);
+}"###
+);
 
 schema_type!(AtpBlob, "blob", {
     /// list of acceptable MIME types. Each may end in `*` as a glob pattern (eg, `image/*`). Use `*/*` to indicate that any MIME type is accepted.
@@ -185,7 +190,7 @@ schema_type!(AtpObject, "object", {
           }
 }}"###);
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, derive_display_from_debug::Display)]
 #[serde(tag = "type")]
 #[serde(rename_all = "lowercase")]
 enum ParamProps {
@@ -196,8 +201,8 @@ enum ParamProps {
     Array {
         items: Box<ParamProps>,
         min_length: Option<u32>,
-        max_length: Option<u32>
-    }
+        max_length: Option<u32>,
+    },
 }
 
 schema_type!(AtpParams, "params", {
@@ -221,10 +226,15 @@ schema_type!(AtpParams, "params", {
 				}
 			}"###);
 
-schema_type!(AtpToken, "token", {}, r###"{
+schema_type!(
+    AtpToken,
+    "token",
+    {},
+    r###"{
     "type": "token",
     "description": "this is a small token of my appreciation"
-}"###);
+}"###
+);
 
 schema_type!(AtpRef, "ref", {
     /// reference to another schema definition
@@ -247,10 +257,15 @@ schema_type!(AtpUnion, "union", {
     "refs": ["systems.dere.oof", "lady.office#goth"]
 }"###);
 
-schema_type!(AtpUnknown, "unknown", {}, r###"{
+schema_type!(
+    AtpUnknown,
+    "unknown",
+    {},
+    r###"{
     "type": "unknown",
     "description": "me"
-}"###);
+}"###
+);
 
 schema_type!(AtpRecord, "record", {
     /// specifies the Record Key `type` (e.g. tid)
@@ -296,26 +311,26 @@ schema_type!(AtpRecord, "record", {
       }
     }"###);
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, derive_display_from_debug::Display)]
 #[serde(tag = "type")]
 #[serde(rename_all = "lowercase")]
 /// schema definition, either an object, a ref, or a union of refs. Used to describe JSON encoded responses, though schema is optional even for JSON responses.
-enum RpcSchema {  
+enum RpcSchema {
     Object(AtpObject),
     Ref(AtpRef),
-    Union(AtpUnion)
+    Union(AtpUnion),
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, derive_display_from_debug::Display)]
 struct RpcIO {
     description: Option<String>,
     encoding: String,
-    schema: Option<RpcSchema>
+    schema: Option<RpcSchema>,
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, derive_display_from_debug::Display)]
 struct RpcError {
     /// short name for the error type, with no whitespace
     name: String,
@@ -323,7 +338,7 @@ struct RpcError {
     description: Option<String>,
 }
 
-    schema_type!(AtpQuery, "query", {
+schema_type!(AtpQuery, "query", {
     /// a schema definition with type `params`, describing the HTTP query parameters for this endpoint
     parameters: Option<AtpParams>,
     /// describes the HTTP response body
@@ -396,10 +411,10 @@ schema_type!(AtpProcedure, "procedure", {
     }"###);
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, derive_display_from_debug::Display)]
 struct RpcMessage {
     description: Option<String>,
-    schema: AtpUnion
+    schema: AtpUnion,
 }
 
 schema_type!(AtpSubscription, "subscription", {
@@ -442,7 +457,7 @@ schema_type!(AtpSubscription, "subscription", {
     }"###);
 
 #[subenum(Field)]
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, derive_display_from_debug::Display)]
 #[serde(tag = "type")]
 #[serde(rename_all = "lowercase")]
 pub enum AtpTypes {
@@ -481,14 +496,11 @@ pub enum AtpTypes {
 }
 
 mod test {
-    use serde::{Serialize, Deserialize};
-
-    use crate::types::{AtpBoolean, Field};
-
-    use super::AtpTypes;
+    use serde::{Deserialize, Serialize};
 
     #[test]
     fn integ() {
+        use crate::lexicon::*;
         let a: Field = serde_json::from_str(
             r###"{
               "type": "boolean",
@@ -496,6 +508,8 @@ mod test {
             }"###,
         )
         .unwrap();
+
+        println!("{a}");
 
         assert_eq!(
             a,
@@ -511,7 +525,7 @@ mod test {
     #[serde(tag = "type")]
     #[serde(deny_unknown_fields)]
     struct Test {
-      description: Option<String>,
+        description: Option<String>,
     }
 
     #[test]
