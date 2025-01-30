@@ -4,6 +4,23 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use subenum::subenum;
 
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+/// Lexicons are JSON files associated with a single NSID. A file contains one or more definitions, each with a distinct short name. A definition with the name `main` optionally describes the "primary" definition for the entire file. A Lexicon with zero definitions is invalid.
+pub struct Lexicon {
+    /// indicates Lexicon language version. In this version, a fixed value of `1`
+    pub lexicon: i32,
+    /// the NSID of the Lexicon
+    pub id: String,
+    /// indicates the version of this Lexicon, if changes have occurred
+    pub revision: Option<i32>,
+    /// short overview of the Lexicon, usually one or two sentences
+    pub description: Option<String>,
+    /// set of definitions, each with a distinct name (key)
+    pub defs: HashMap<String, AtpTypes>,
+}
+
 schema_type!(
     AtpNull,
     "null",
@@ -16,10 +33,10 @@ schema_type!(
 
 schema_type!(AtpBoolean, "boolean", {
     /// a default value for this field
-    default: Option<bool>,
+    pub default: Option<bool>,
     #[serde(rename="const")]
     /// a fixed (constant) value for this field
-    constant: Option<bool>
+    pub constant: Option<bool>
 }, r###"{
     "type": "boolean",
     "description": "an example",
@@ -29,17 +46,17 @@ schema_type!(AtpBoolean, "boolean", {
 
 schema_type!(AtpInteger, "integer", {
     /// minimum acceptable value
-    minimum: Option<i32>,
+    pub minimum: Option<i32>,
     /// maximum acceptable value
-    maximum: Option<i32>,
+    pub maximum: Option<i32>,
     /// a closed set of allowed values
     #[serde(rename="enum")]
-    enumeration: Option<Vec<i32>>,
+    pub enumeration: Option<Vec<i32>>,
     /// a default value for this field
-    default: Option<i32>,
+    pub default: Option<i32>,
     /// a fixed (constant) value for this field
     #[serde(rename="const")]
-    constant: Option<i32>
+    pub constant: Option<i32>
 }, r###"{
     "type": "integer",
     "description": "example integer",
@@ -51,7 +68,7 @@ schema_type!(AtpInteger, "integer", {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, derive_display_from_debug::Display)]
 #[serde(rename_all = "kebab-case")]
-enum StringFormats {
+pub enum StringFormats {
     AtIdentifier,
     AtUri,
     Cid,
@@ -67,25 +84,25 @@ enum StringFormats {
 
 schema_type!(AtpString, "string", {
     /// string format restriction
-    format: Option<StringFormats>,
+    pub format: Option<StringFormats>,
     /// maximum length of value, in UTF-8 bytes
-    max_length: Option<u32>,
+    pub max_length: Option<u32>,
     /// minimum length of value, in UTF-8 bytes
-    min_length: Option<u32>,
+    pub min_length: Option<u32>,
     /// maximum length of value, counted as Unicode Grapheme Clusters
-    max_graphemes: Option<u32>,
+    pub max_graphemes: Option<u32>,
     /// minimum length of value, counted as Unicode Grapheme Clusters
-    min_graphemes: Option<u32>,
+    pub min_graphemes: Option<u32>,
     /// a set of suggested or common values for this field. Values are not limited to this set (aka, not a closed enum).
-    known_values: Option<Vec<String>>,
+    pub known_values: Option<Vec<String>>,
     /// a closed set of allowed values
     #[serde(rename="enum")]
-    enumeration: Option<Vec<String>>,
+    pub enumeration: Option<Vec<String>>,
     /// a default value for this field
-    default: Option<String>,
+    pub default: Option<String>,
     /// a fixed (constant) value for this field
     #[serde(rename="const")]
-    constant: Option<String>
+    pub constant: Option<String>
 }, r###"{
     "type": "string",
     "description": "an incredibly contrived string example",
@@ -101,9 +118,9 @@ schema_type!(AtpString, "string", {
 
 schema_type!(AtpBytes, "bytes", {
     /// minimum size of value, as raw bytes with no encoding
-    min_length: Option<u32>,
+    pub min_length: Option<u32>,
     /// maximum size of value, as raw bytes with no encoding
-    max_length: Option<u32>
+    pub max_length: Option<u32>
 }, r###"{
     "type": "bytes",
     "description": "someone please take a byte out of me", 
@@ -123,9 +140,9 @@ schema_type!(
 
 schema_type!(AtpBlob, "blob", {
     /// list of acceptable MIME types. Each may end in `*` as a glob pattern (eg, `image/*`). Use `*/*` to indicate that any MIME type is accepted.
-    accept: Option<Vec<String>>,
+    pub accept: Option<Vec<String>>,
     /// maximum size in bytes
-    max_size: Option<u32>
+    pub max_size: Option<u32>
 }, r###"{
     "type": "blob",
     "description": "an image of the only good formats",
@@ -135,11 +152,11 @@ schema_type!(AtpBlob, "blob", {
 
 schema_type!(AtpArray, "array", {
     /// describes the schema elements of this array
-    items: Box<AtpTypes>,
+    pub items: Box<AtpTypes>,
     /// minimum count of elements in array
-    min_length: Option<u32>,
+    pub min_length: Option<u32>,
     /// maximum count of elements in array
-    max_length: Option<u32>
+    pub max_length: Option<u32>
 }, r###"{
             "type": "array",
             "description": "An array of tags this image had.",
@@ -152,11 +169,11 @@ schema_type!(AtpArray, "array", {
 
 schema_type!(AtpObject, "object", {
     /// defines the properties (fields) by name, each with their own schema
-    properties: HashMap<String, AtpTypes>,
+    pub properties: HashMap<String, AtpTypes>,
     /// indicates which properties are required
-    required: Option<Vec<String>>,
+    pub required: Option<Vec<String>>,
     /// indicates which properties can have null as a value
-    nullable: Option<Vec<String>>
+    pub nullable: Option<Vec<String>>
 }, r###"{
         "type": "object",
         "required": ["image", "createdAt"],
@@ -207,9 +224,9 @@ enum ParamProps {
 
 schema_type!(AtpParams, "params", {
     /// same semantics as field on `object`
-    required: Option<Vec<String>>,
+    pub required: Option<Vec<String>>,
     /// similar to properties under `object`, but can only include the types `boolean`, `integer`, `string`, and `unknown`; or an `array` of one of these types
-    properties: HashMap<String, ParamProps>
+    pub properties: HashMap<String, ParamProps>
 }, r###"{
 				"type": "params",
 				"required": ["did", "rkey"],
@@ -239,7 +256,7 @@ schema_type!(
 schema_type!(AtpRef, "ref", {
     /// reference to another schema definition
     #[serde(rename="ref")]
-    reference: String
+    pub reference: String
 }, r###"{
     "type": "ref",
     "description": "a pointer to the thing I'm going to claim",
@@ -248,9 +265,9 @@ schema_type!(AtpRef, "ref", {
 
 schema_type!(AtpUnion, "union", {
     /// references to schema definitions
-    refs: Vec<String>,
+    pub refs: Vec<String>,
     /// indicates if a union is "open" or "closed". defaults to `false` (open union)
-    closed: Option<bool>
+    pub closed: Option<bool>
 }, r###"{
     "type": "union",
     "description": "me and who",
@@ -269,9 +286,9 @@ schema_type!(
 
 schema_type!(AtpRecord, "record", {
     /// specifies the Record Key `type` (e.g. tid)
-    key: String, // def make an enum for this
+    pub key: String, // def make an enum for this
     /// a schema definition with type `object`, which specifies this type of record
-    record: AtpObject
+    pub record: AtpObject
 }, r###"{
       "type": "record",
       "key": "tid",
@@ -324,27 +341,27 @@ enum RpcSchema {
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, derive_display_from_debug::Display)]
 struct RpcIO {
-    description: Option<String>,
-    encoding: String,
-    schema: Option<RpcSchema>,
+    pub description: Option<String>,
+    pub encoding: String,
+    pub schema: Option<RpcSchema>,
 }
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, derive_display_from_debug::Display)]
 struct RpcError {
     /// short name for the error type, with no whitespace
-    name: String,
+    pub name: String,
     /// short description, one or two sentences
-    description: Option<String>,
+    pub description: Option<String>,
 }
 
 schema_type!(AtpQuery, "query", {
     /// a schema definition with type `params`, describing the HTTP query parameters for this endpoint
-    parameters: Option<AtpParams>,
+    pub parameters: Option<AtpParams>,
     /// describes the HTTP response body
-    output: Option<RpcIO>,
+    pub output: Option<RpcIO>,
     /// set of string error codes which might be returned
-    errors: Option<Vec<RpcError>>
+    pub errors: Option<Vec<RpcError>>
 }, r###"{
       "type": "query",
       "description": "Get a blob associated with a given account. Returns the full blob as originally uploaded. Does not require auth; implemented by PDS.",
@@ -378,13 +395,13 @@ schema_type!(AtpQuery, "query", {
 
 schema_type!(AtpProcedure, "procedure", {
     /// a schema definition with type `params`, describing the HTTP query parameters for this endpoint
-    parameters: Option<AtpParams>,
+    pub parameters: Option<AtpParams>,
     /// describes the HTTP response body
-    output: Option<RpcIO>,
+    pub output: Option<RpcIO>,
     /// describes HTTP request body schema, with the same format as the `output` field
-    input: Option<RpcIO>,
+    pub input: Option<RpcIO>,
     /// set of string error codes which might be returned
-    errors: Option<Vec<RpcError>>
+    pub errors: Option<Vec<RpcError>>
 }, r###"{
       "type": "procedure",
       "description": "Update an account's email.",
@@ -413,14 +430,14 @@ schema_type!(AtpProcedure, "procedure", {
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, derive_display_from_debug::Display)]
 struct RpcMessage {
-    description: Option<String>,
-    schema: AtpUnion,
+    pub description: Option<String>,
+    pub schema: AtpUnion,
 }
 
 schema_type!(AtpSubscription, "subscription", {
-    parameters: Option<AtpParams>,
-    message: RpcMessage,
-    errors: Option<Vec<RpcError>>
+    pub parameters: Option<AtpParams>,
+    pub message: RpcMessage,
+    pub errors: Option<Vec<RpcError>>
 }, r###"{
       "type": "subscription",
       "description": "Repository event stream, aka Firehose endpoint. Outputs repo commits with diff data, and identity update events, for all repositories on the current server. See the atproto specifications for details around stream sequencing, repo versioning, CAR diff format, and more. Public and does not require auth; implemented by PDS and Relay.",

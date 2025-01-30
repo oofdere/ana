@@ -695,7 +695,7 @@ dependencies = [
 [[package]]
 name = "tree-sitter-ana"
 version = "0.1.0"
-source = "git+https://github.com/oofdere/tree-sitter-ana#bd67d9242021edb6f824a1aad827755cb626e104"
+source = "git+https://github.com/oofdere/tree-sitter-ana#53692ef6cda6c8e6523021030efb38406fae18e9"
 dependencies = [
  "cc",
  "tree-sitter-language",

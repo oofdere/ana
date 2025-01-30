@@ -1,0 +1,6 @@
+com.shinolabs.pinksea.oekaki {
+        imageLink {
+            fullsize: Uri;
+            alt?: String;
+        }
+}

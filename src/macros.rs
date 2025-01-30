@@ -34,13 +34,14 @@ macro_rules! schema_type {
     ($name:ident, $type:literal, { $($body:tt)* }, $example:literal) => {
         #[skip_serializing_none]
         #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-        #[serde(tag = "type")]
-        #[serde(rename = $type)]
+        // tagging structs just does not work, you'll have to go through the AtpTypes enum to generate a valid instance
+        //#[serde(tag = "type")]
+        //#[serde(rename = $type)]
         #[serde(rename_all = "camelCase")]
         //#[serde(deny_unknown_fields)] I'd like to but this breaks tagging :death:
         pub struct $name {
             /// short, usually only a sentence or two
-            description: Option<String>,
+            pub description: Option<String>,
             $($body)*
         }
 
