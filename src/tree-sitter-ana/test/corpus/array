@@ -1,0 +1,13 @@
+===
+array
+===
+[]
+---
+(program (array))
+
+===
+sized_array
+===
+[..10]
+---
+(program (array (slice max: (integer))))

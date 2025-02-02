@@ -1,0 +1,36 @@
+{
+  "grammars": [
+    {
+      "name": "ana",
+      "camelcase": "Ana",
+      "scope": "source.ana",
+      "file-types": [
+        ".ana"
+      ],
+      "injection-regex": "^ana$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "atproto lexicon dsl",
+    "authors": [
+      {
+        "name": "Tibet Tornaci",
+        "email": "oofdere@hey.com",
+        "url": "https://oof.dere.systems/"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/oofdere/tree-sitter-ana"
+    }
+  },
+  "bindings": {
+    "c": true,
+    "go": true,
+    "node": true,
+    "python": true,
+    "rust": true,
+    "swift": true
+  }
+}

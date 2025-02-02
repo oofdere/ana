@@ -12,6 +12,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ana"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "derive_display_from_debug",
+ "format_serde_error",
+ "paste",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "subenum",
+ "tree-sitter",
+ "tree-sitter-ana",
+]
+
+[[package]]
 name = "android-tzdata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -87,23 +104,6 @@ name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
-
-[[package]]
-name = "bondage"
-version = "0.1.0"
-dependencies = [
- "clap",
- "derive_display_from_debug",
- "format_serde_error",
- "paste",
- "pretty_assertions",
- "serde",
- "serde_json",
- "serde_with",
- "subenum",
- "tree-sitter",
- "tree-sitter-ana",
-]
 
 [[package]]
 name = "bumpalo"
@@ -695,9 +695,9 @@ dependencies = [
 [[package]]
 name = "tree-sitter-ana"
 version = "0.1.0"
-source = "git+https://github.com/oofdere/tree-sitter-ana#53692ef6cda6c8e6523021030efb38406fae18e9"
 dependencies = [
  "cc",
+ "tree-sitter",
  "tree-sitter-language",
 ]
 
