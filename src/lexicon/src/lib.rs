@@ -1,3 +1,5 @@
+#[macro_use] mod macros;
+
 use std::{collections::HashMap, fmt::Display};
 
 use serde::{Deserialize, Serialize};

@@ -2,35 +2,14 @@ use format_serde_error::SerdeError;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs};
 
-#[macro_use]
-mod macros;
-
-pub mod lexicon;
-
 use clap::Parser as ArgParser;
-use lexicon::{AtpNull, AtpObject, AtpString, AtpTypes, AtpUnknown, StringFormats};
+use lexicon::{AtpNull, AtpObject, AtpString, AtpTypes, AtpUnknown, StringFormats, Lexicon};
 
 use tree_sitter::{InputEdit, Language, Node, Parser, Point, TreeCursor};
 
 #[derive(clap::Parser, Debug)]
 struct Args {
     path: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-/// Lexicons are JSON files associated with a single NSID. A file contains one or more definitions, each with a distinct short name. A definition with the name `main` optionally describes the "primary" definition for the entire file. A Lexicon with zero definitions is invalid.
-pub struct Lexicon {
-    /// indicates Lexicon language version. In this version, a fixed value of `1`
-    lexicon: i32,
-    /// the NSID of the Lexicon
-    id: String,
-    /// indicates the version of this Lexicon, if changes have occurred
-    revision: Option<i32>,
-    /// short overview of the Lexicon, usually one or two sentences
-    description: Option<String>,
-    /// set of definitions, each with a distinct name (key)
-    defs: HashMap<String, AtpTypes>,
 }
 
 fn main() {
@@ -86,7 +65,6 @@ fn parse_scope(kv: &mut HashMap<String, AtpTypes>, src: &String, scope: Node) {
     let id = &src[id.byte_range()];
     println!("{id}");
 
-    
     let mut required: Vec<String> = vec![];
     let mut properties: HashMap<String, AtpTypes> = HashMap::new();
 
