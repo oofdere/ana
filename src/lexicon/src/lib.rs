@@ -1,4 +1,5 @@
-#[macro_use] mod macros;
+#[macro_use]
+mod macros;
 
 use std::{collections::HashMap, fmt::Display};
 

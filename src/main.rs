@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs};
 
 use clap::Parser as ArgParser;
-use lexicon::{AtpNull, AtpObject, AtpString, AtpTypes, AtpUnknown, StringFormats, Lexicon};
+use lexicon::{AtpNull, AtpObject, AtpString, AtpTypes, AtpUnknown, Lexicon, StringFormats};
 
 use tree_sitter::{InputEdit, Language, Node, Parser, Point, TreeCursor};
 
@@ -86,7 +86,7 @@ fn parse_scope(kv: &mut HashMap<String, AtpTypes>, src: &String, scope: Node) {
                         required.push(name.to_string());
                         dbg!(&required);
                         name
-                    },
+                    }
                 };
                 println!("{}", &src[param.child(1).unwrap().byte_range()]);
                 properties.insert(
