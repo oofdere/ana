@@ -1,0 +1,6 @@
+[submodule "tree-sitter-ana"]
+	path = tree-sitter-ana
+	url = https://github.com/oofdere/tree-sitter-ana
+[submodule "src/tree-sitter-ana"]
+	path = src/tree-sitter-ana
+	url = https://github.com/oofdere/tree-sitter-ana
