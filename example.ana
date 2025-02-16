@@ -1,4 +1,4 @@
-com.shinolabs.pinksea.oekaki {
+@com.shinolabs.pinksea.oekaki {
         imageLink {
             fullsize: Uri;
             alt?: String;

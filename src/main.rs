@@ -1,9 +1,11 @@
-use format_serde_error::SerdeError;
-use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs};
 
 use clap::Parser as ArgParser;
-use lexicon::{AtpNull, AtpObject, AtpString, AtpTypes, AtpUnknown, Lexicon, StringFormats};
+use lexicon::{
+    AtpArray, AtpBlob, AtpBoolean, AtpBytes, AtpCidLink, AtpInteger, AtpNull, AtpObject, AtpParams,
+    AtpProcedure, AtpQuery, AtpRecord, AtpRef, AtpString, AtpSubscription, AtpToken, AtpTypes,
+    AtpUnion, AtpUnknown, Lexicon, StringFormats, atp_format,
+};
 
 use tree_sitter::{InputEdit, Language, Node, Parser, Point, TreeCursor};
 
@@ -23,150 +25,122 @@ fn main() {
         .expect("Error loading ana grammar");
 
     let mut tree = parser.parse(&src, None).unwrap();
+    println!("{}", tree.root_node().to_sexp());
 
-    // program -> scope
-    let mut program = tree.root_node().child(0).unwrap();
-    println!("tree: {}", program.to_sexp());
+    let mut cursor = tree.walk();
 
-    let nsid = program.child_by_field_name("id").unwrap();
+    // only one namespace supported for now
+    let mut namespace = tree
+        .root_node()
+        .child(0)
+        .expect("you sure this is the right file?");
+    println!("tree: {}", namespace.to_sexp());
+
+    let nsid = namespace.child_by_field_name("name").unwrap();
     let nsid = &src[nsid.byte_range()];
     println!("nsid: {}", nsid);
 
     let mut res = Lexicon {
         lexicon: 1,
-        id: format!("{nsid}"),
+        id: nsid.to_string(),
         revision: None,
         description: None,
         defs: HashMap::new(),
     };
 
-    let mut defs = program.child(1).unwrap();
+    let body = namespace.children_by_field_name("body", &mut cursor);
 
-    let mut cursor = defs.walk();
-    let scopes = defs.children(&mut cursor);
+    for def in body {
+        println!("a: {}", def.to_sexp());
+        match def.kind() {
+            "record" => panic!("found record!"),
+            "object" => {
+                let name = &src[def.child_by_field_name("name").unwrap().byte_range()];
+                let mut object = AtpObject {
+                    description: None,
+                    properties: HashMap::new(),
+                    required: None,
+                    nullable: None,
+                };
 
-    for scope in scopes {
-        match scope.kind() {
-            "record" => (),
-            "scope" => parse_scope(&mut res.defs, &src, scope),
-            "{" | "}" => continue,
-            _ => println!("unexpected node {}", &src[scope.byte_range()]),
+                let mut required: Vec<String> = Vec::new();
+
+                let mut cursor = def.walk();
+                let props = def
+                    .child_by_field_name("body")
+                    .unwrap()
+                    .children(&mut cursor);
+                for prop in props {
+                    println!("{}", prop.to_sexp());
+                    match prop.kind() {
+                        "property" => println!("found property!"),
+                        "optional" => {
+                            println!("found optional prop!");
+                            required.push(
+                                (&src[prop.child_by_field_name("name").unwrap().byte_range()])
+                                    .to_string(),
+                            );
+                        }
+                        "ref" => todo!(),
+                        _ => continue,
+                    };
+
+                    let name = &src[prop.child_by_field_name("name").unwrap().byte_range()];
+                    let typen = prop.child_by_field_name("type").unwrap();
+                    let mut atp_type = AtpTypes::Unknown(AtpUnknown::new());
+                    match typen.kind() {
+                        "ref" => todo!(),
+                        "type" => {
+                            let name =
+                                &src[typen.child_by_field_name("name").unwrap().byte_range()];
+                            atp_type = match name {
+                                "Null" => AtpTypes::Null(AtpNull::new()),
+                                "Boolean" => AtpTypes::Boolean(AtpBoolean::new()),
+                                "Integer" => AtpTypes::Integer(AtpInteger::new()),
+                                "String" => AtpTypes::String(AtpString::new()),
+                                "Bytes" => AtpTypes::Bytes(AtpBytes::new()),
+                                "CidLink" => AtpTypes::CidLink(AtpCidLink::new()),
+                                "Blob" => AtpTypes::Blob(AtpBlob::new()),
+                                "Array" => AtpTypes::Array(AtpArray::new()),
+                                "Object" => AtpTypes::Object(AtpObject::new()),
+                                "Params" => AtpTypes::Params(AtpParams::new()),
+                                "Token" => AtpTypes::Token(AtpToken::new()),
+                                "Ref" => AtpTypes::Ref(AtpRef::new()),
+                                "Union" => AtpTypes::Union(AtpUnion::new()),
+                                "Unknown" => AtpTypes::Unknown(AtpUnknown::new()),
+                                "Record" => AtpTypes::Record(AtpRecord::new()),
+                                "Query" => AtpTypes::Query(AtpQuery::new()),
+                                "Procedure" => AtpTypes::Procedure(AtpProcedure::new()),
+                                "Subscription" => AtpTypes::Subscription(AtpSubscription::new()),
+                                "AtIdentifier" => atp_format(StringFormats::AtIdentifier),
+                                "AtUri" => atp_format(StringFormats::AtUri),
+                                "Cid" => atp_format(StringFormats::Cid),
+                                "DateTime" => atp_format(StringFormats::Datetime),
+                                "Did" => atp_format(StringFormats::Did),
+                                "Handle" => atp_format(StringFormats::Handle),
+                                "Nsid" => atp_format(StringFormats::Nsid),
+                                "Tid" => atp_format(StringFormats::Tid),
+                                "RecordKey" => atp_format(StringFormats::RecordKey),
+                                "Uri" => atp_format(StringFormats::Uri),
+                                "Language" => atp_format(StringFormats::Language),
+                                _ => panic!("unknown type {name}"),
+                            };
+                        }
+                        "array" => todo!(),
+                        "union" => todo!(),
+                        _ => panic!("unknown type {name}"),
+                    }
+                    object.properties.insert(name.to_string(), atp_type);
+                }
+
+                res.defs.insert(name.to_string(), AtpTypes::Object(object));
+            }
+            "get" => panic!("found get!"),
+            _ => panic!("unexpected type"),
         }
     }
 
     println!("res: {:#?}", res);
 
     println!("{}", serde_json::to_string_pretty(&res).unwrap());
-}
-
-fn parse_scope(kv: &mut HashMap<String, AtpTypes>, src: &String, scope: Node) {
-    let mut cursor = scope.walk();
-    let id = scope.child_by_field_name("id").unwrap();
-    let id = &src[id.byte_range()];
-    println!("{id}");
-
-    let mut required: Vec<String> = vec![];
-    let mut properties: HashMap<String, AtpTypes> = HashMap::new();
-
-    println!("{}", scope.child(1).unwrap().to_sexp());
-
-    for param in scope.child(1).unwrap().children(&mut cursor) {
-        match param.kind() {
-            "param" => {
-                let name = match param.child(0).unwrap().kind() {
-                    "optional" => {
-                        println!("param: {}", param.to_sexp());
-                        (&src[param.child(0).unwrap().byte_range()])
-                            .split_once('?')
-                            .unwrap()
-                            .0
-                    }
-                    _ => {
-                        let name = &src[param.child(0).unwrap().byte_range()];
-                        required.push(name.to_string());
-                        dbg!(&required);
-                        name
-                    }
-                };
-                println!("{}", &src[param.child(1).unwrap().byte_range()]);
-                properties.insert(
-                    name.to_string(),
-                    match &src[param.child(2).unwrap().byte_range()] {
-                        "String" => AtpTypes::String(AtpString {
-                            description: None,
-                            format: None,
-                            max_length: None,
-                            min_length: None,
-                            max_graphemes: None,
-                            min_graphemes: None,
-                            known_values: None,
-                            enumeration: None,
-                            default: None,
-                            constant: None,
-                        }),
-                        "Uri" => AtpTypes::String(AtpString {
-                            description: None,
-                            format: Some(StringFormats::Uri),
-                            max_length: None,
-                            min_length: None,
-                            max_graphemes: None,
-                            min_graphemes: None,
-                            known_values: None,
-                            enumeration: None,
-                            default: None,
-                            constant: None,
-                        }),
-                        _ => AtpTypes::Unknown(AtpUnknown {
-                            description: Some(String::from("failed to parse field")),
-                        }),
-                    },
-                );
-            }
-            _ => continue,
-        }
-        let key = &src[param.child(0).unwrap().byte_range()];
-    }
-
-    let mut res = AtpObject {
-        description: None,
-        properties: properties,
-        required: Some(required),
-        nullable: None,
-    };
-
-    kv.insert(id.to_string(), AtpTypes::Object(res));
-
-    println!("object: {}", &src[scope.byte_range()]);
-}
-
-fn parse_param() {}
-
-fn _old_main() {
-    let args = Args::parse();
-
-    let src = fs::read_to_string(&args.path).unwrap();
-    let a: Result<Lexicon, SerdeError> =
-        serde_json::from_str(&src).map_err(|err| SerdeError::new(src, err));
-
-    let a = dbg!(a);
-
-    match a {
-        Ok(a) => println!("{a:#?}"),
-        Err(err) => eprintln!("{err}"),
-    };
-    // match a {
-    //     Ok(b) => println!("{b:?}"),
-    //     Err(e) => {
-    //         Report::build(ReportKind::Error, (args.path.as_str(), e.line()-1..e.line()+1))
-    //             .with_message(format!("{} {}", e, e.line()))
-    //             .with_label(
-    //                 Label::new((args.path.as_str(), e.column()..e.column()+1)).with_message("here!").with_color(Color::Red)
-    //             )
-    //             .finish()
-    //             .eprint((args.path.as_str(), Source::from(src)))
-    //             .unwrap();
-
-    //         dbg!(e);
-    //     }
-    //}
 }

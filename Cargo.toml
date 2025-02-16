@@ -8,17 +8,8 @@ edition = "2024"
 
 
 [dependencies]
-serde_json = "1.0.137"
-serde = { version = "*", features = ["derive"]}
-subenum = "1.1.2"
-serde_with = "3.12.0"
 clap = { version = "4.5.27", features = ["derive"] }
-format_serde_error = "0.3.0"
-derive_display_from_debug = "0.1.2"
 tree-sitter = "0.24.7"
 tree-sitter-ana = { version = "0.1.0", path = "src/tree-sitter-ana" }
 lexicon = { version = "0.1.0", path = "src/lexicon" }
-
-[dev-dependencies]
-pretty_assertions = "*"
-paste = "1.0"
+serde_json = "1.0.138"

@@ -31,7 +31,7 @@ macro_rules! create_type_test {
 
 #[macro_export]
 macro_rules! schema_type {
-    ($name:ident, $type:literal, { $($body:tt)* }, $example:literal) => {
+    ($name:ident, $type:literal, { $($body:tt)* }, { $($default:tt)* }, $example:literal) => {
         #[skip_serializing_none]
         #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
         // tagging structs just does not work, you'll have to go through the AtpTypes enum to generate a valid instance
@@ -43,6 +43,15 @@ macro_rules! schema_type {
             /// short, usually only a sentence or two
             pub description: Option<String>,
             $($body)*
+        }
+
+        impl $name {
+            pub fn new() -> Self {
+                Self {
+                    description: None,
+                    $($default)*
+                }
+            }
         }
 
         create_type_test!($name, $example);
