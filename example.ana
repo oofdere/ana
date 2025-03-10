@@ -3,4 +3,9 @@
             fullsize: Uri;
             alt?: String;
         }
+
+        image {
+            blob: Blob(accept="image/png", size=..1048576);
+            imageLink: #imageLink;
+        }
 }

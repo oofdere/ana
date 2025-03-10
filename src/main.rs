@@ -81,7 +81,7 @@ fn main() {
                                     .to_string(),
                             );
                         }
-                        "ref" => todo!(),
+                        "ref" => println!("found ref!"),
                         _ => continue,
                     };
 
@@ -89,7 +89,15 @@ fn main() {
                     let typen = prop.child_by_field_name("type").unwrap();
                     let mut atp_type = AtpTypes::Unknown(AtpUnknown::new());
                     match typen.kind() {
-                        "ref" => todo!(),
+                        "ref" => {
+                            println!("{:?}", typen.to_sexp());
+                            atp_type = AtpTypes::Ref(AtpRef {
+                                description: None,
+                                reference: String::from(
+                                    &src[typen.child_by_field_name("id").unwrap().byte_range()],
+                                ),
+                            });
+                        }
                         "type" => {
                             let name =
                                 &src[typen.child_by_field_name("name").unwrap().byte_range()];
