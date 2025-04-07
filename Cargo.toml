@@ -1,5 +1,5 @@
 [workspace]
-members = [ "src/ir", "src/lexicon","src/tree-sitter-ana"]
+members = ["src/ir", "src/lexicon", "src/tree-sitter-ana"]
 
 [package]
 name = "ana"
@@ -10,6 +10,6 @@ edition = "2024"
 [dependencies]
 clap = { version = "4.5.27", features = ["derive"] }
 tree-sitter = "0.25.3"
-tree-sitter-ana = { version = "0.1.0", path = "src/tree-sitter-ana" }
+tree-sitter-ana = { version = "0.1.1", path = "src/tree-sitter-ana" }
 lexicon = { version = "0.1.0", path = "src/lexicon" }
 serde_json = "1.0.138"
