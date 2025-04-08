@@ -38,6 +38,7 @@ pub struct Slice<T> {
 }
 
 pub fn extract_slice(src: &str, node: &Node) -> Slice<isize> {
+    // TODO fix slice start and end bytes, take from min and max instead of node
     // slice can be an anonymous node so we don't match on it and everything explodes instead
     // this means any node can be passed in and you get a start and end range always
     let min = node
@@ -90,17 +91,42 @@ pub fn extract_param(src: &str, node: &Node) -> Result<Param, ()> {
     }
 }
 
-pub enum TypeKind {
-    Ref(String),
-    Type(String),
-    Array(String),
-    Union(String),
+#[derive(Debug)]
+pub struct GenericType {
+    pub name: String,
+    pub params: Vec<Param>,
+    pub slice: Slice<isize>,
+    pub loc: Range,
+}
+
+pub fn extract_generic_type(src: &str, node: &Node) -> Result<GenericType, ()> {
+    // this function extracts generic type info from a type node
+    // generic types are not part of the IR and should be converted to a specific type
+
+    match node.kind() {
+        "type" => {
+            let mut cursor = node.walk();
+            let name = node.named_child(0).unwrap().str(&src);
+            let params = node
+                .children_by_field_name("param", &mut cursor)
+                .map(|x| extract_param(&src, &x).unwrap());
+            let slice = extract_slice(&src, &node);
+
+            Ok(GenericType {
+                name,
+                params: params.collect(),
+                slice,
+                loc: node.range(),
+            })
+        }
+        _ => Err(()),
+    }
 }
 
 #[derive(Debug)]
 pub struct Prop {
     pub name: String,
-    pub value: String, //TypeKind,
+    pub value: String,
     pub loc: Range,
 }
 
@@ -186,5 +212,17 @@ mod tests {
         assert!(prop.value == "#ref");
         assert!(prop.loc.start_byte == 4);
         assert!(prop.loc.end_byte == 13);
+    }
+
+    #[test]
+    fn extract_generic_type_test() {
+        let src = "@@[ String(len=1..10, format=\"did\") ]@@";
+        let tree = parse(&src);
+        let node = unwrap_harness(&tree);
+        let generic_type = extract_generic_type(src, &node).unwrap();
+        assert!(generic_type.name == "String");
+        assert!(generic_type.params.len() == 2);
+        assert!(generic_type.params[0].name == "len");
+        assert!(generic_type.params[1].value == ParamKind::String("did".to_string()));
     }
 }
