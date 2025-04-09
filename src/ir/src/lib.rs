@@ -1,3 +1,5 @@
+use lexicon::{AtpString, AtpTypes, StringFormats};
+use std::collections::HashMap;
 use tree_sitter::{Node, Range};
 
 trait NodeHelpers {
@@ -23,7 +25,7 @@ pub fn extract_string(src: &str, node: &Node) -> Option<String> {
     }
 }
 
-pub fn extract_integer(src: &str, node: &Node) -> Option<isize> {
+pub fn extract_integer(src: &str, node: &Node) -> Option<u32> {
     match node.kind() {
         "integer" => Some(node.str(&src).parse().unwrap()),
         _ => None,
@@ -37,7 +39,7 @@ pub struct Slice<T> {
     pub loc: Range,
 }
 
-pub fn extract_slice(src: &str, node: &Node) -> Slice<isize> {
+pub fn extract_slice(src: &str, node: &Node) -> Slice<u32> {
     // TODO fix slice start and end bytes, take from min and max instead of node
     // slice can be an anonymous node so we don't match on it and everything explodes instead
     // this means any node can be passed in and you get a start and end range always
@@ -65,8 +67,8 @@ pub struct Param {
 #[derive(Debug, PartialEq)]
 pub enum ParamKind {
     String(String),
-    Integer(isize),
-    Slice(Slice<isize>),
+    Integer(u32),
+    Slice(Slice<u32>),
 }
 
 pub fn extract_param(src: &str, node: &Node) -> Result<Param, ()> {
@@ -94,8 +96,8 @@ pub fn extract_param(src: &str, node: &Node) -> Result<Param, ()> {
 #[derive(Debug)]
 pub struct GenericType {
     pub name: String,
-    pub params: Vec<Param>,
-    pub slice: Slice<isize>,
+    pub params: HashMap<Box<str>, Param>,
+    pub slice: Slice<u32>,
     pub loc: Range,
 }
 
@@ -109,7 +111,8 @@ pub fn extract_generic_type(src: &str, node: &Node) -> Result<GenericType, ()> {
             let name = node.named_child(0).unwrap().str(&src);
             let params = node
                 .children_by_field_name("param", &mut cursor)
-                .map(|x| extract_param(&src, &x).unwrap());
+                .map(|x| extract_param(&src, &x).unwrap())
+                .map(|x| (x.name.clone().into_boxed_str(), x));
             let slice = extract_slice(&src, &node);
 
             Ok(GenericType {
@@ -120,6 +123,64 @@ pub fn extract_generic_type(src: &str, node: &Node) -> Result<GenericType, ()> {
             })
         }
         _ => Err(()),
+    }
+}
+
+pub trait Type {
+    /// convert from a GenericType to Self, returns an Option with None if there are any errors during conversion
+    fn from(t: GenericType) -> Self;
+
+    /// convert to a lexicon type
+    fn into(self) -> AtpTypes;
+}
+
+pub struct Str {
+    pub format: Option<StringFormats>,
+    pub length: Option<Slice<u32>>,
+    pub graphemes: Option<Slice<u32>>,
+    //known_values: todo!(),
+    //enumeration: todo!(),
+    pub default: Option<String>,
+    pub constant: Option<String>,
+    pub loc: Range,
+}
+
+impl Type for Str {
+    fn from(t: GenericType) -> Self {
+        //let format = t.params.get("format");
+        let length = t.params.get("length").map_or(None, |x| match &x.value {
+            ParamKind::Slice(s) => Some(s),
+            _ => None,
+        });
+        let graphemes = t.params.get("graphemes").map_or(None, |x| match &x.value {
+            ParamKind::Slice(s) => Some(s),
+            _ => None,
+        });
+
+        Str {
+            format: None,
+            length,
+            graphemes,
+            default: None,
+            constant: None,
+            loc: t.loc,
+        }
+    }
+
+    fn into(self) -> AtpTypes {
+        AtpTypes::String(AtpString {
+            description: None,
+            format: self.format,
+            min_length: self.length.map_or(None, |x| x.start),
+            max_length: self.length.map_or(None, |x| x.end),
+            min_graphemes: self.graphemes.map_or(None, |x| x.start),
+            max_graphemes: self.graphemes.map_or(None, |x| x.end),
+            known_values: None,
+            enumeration: None,
+            default: self.default,
+            constant: self.constant,
+        });
+        todo!()
     }
 }
 
