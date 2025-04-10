@@ -32,11 +32,11 @@ pub fn extract_integer(src: &str, node: &Node) -> Option<u32> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Slice<T> {
     pub start: Option<T>,
     pub end: Option<T>,
-    pub loc: Range,
+    pub loc: Option<Range>,
 }
 
 pub fn extract_slice(src: &str, node: &Node) -> Slice<u32> {
@@ -53,7 +53,17 @@ pub fn extract_slice(src: &str, node: &Node) -> Slice<u32> {
     Slice {
         start: min,
         end: max,
-        loc: node.range(),
+        loc: Some(node.range()),
+    }
+}
+
+impl Slice<u32> {
+    fn empty() -> Slice<u32> {
+        Slice {
+            start: None,
+            end: None,
+            loc: None,
+        }
     }
 }
 
@@ -128,16 +138,16 @@ pub fn extract_generic_type(src: &str, node: &Node) -> Result<GenericType, ()> {
 
 pub trait Type {
     /// convert from a GenericType to Self, returns an Option with None if there are any errors during conversion
-    fn from(t: GenericType) -> Self;
+    fn from_generic(t: GenericType) -> Self;
 
     /// convert to a lexicon type
     fn into(self) -> AtpTypes;
 }
 
-pub struct Str {
+pub struct StringType {
     pub format: Option<StringFormats>,
-    pub length: Option<Slice<u32>>,
-    pub graphemes: Option<Slice<u32>>,
+    pub length: Slice<u32>,
+    pub graphemes: Slice<u32>,
     //known_values: todo!(),
     //enumeration: todo!(),
     pub default: Option<String>,
@@ -145,19 +155,25 @@ pub struct Str {
     pub loc: Range,
 }
 
-impl Type for Str {
-    fn from(t: GenericType) -> Self {
+impl Type for StringType {
+    fn from_generic(t: GenericType) -> Self {
         //let format = t.params.get("format");
-        let length = t.params.get("length").map_or(None, |x| match &x.value {
-            ParamKind::Slice(s) => Some(s),
-            _ => None,
-        });
-        let graphemes = t.params.get("graphemes").map_or(None, |x| match &x.value {
-            ParamKind::Slice(s) => Some(s),
-            _ => None,
-        });
+        let length = t
+            .params
+            .get("len")
+            .map_or(Slice::empty(), |x| match x.value {
+                ParamKind::Slice(s) => s,
+                _ => Slice::empty(),
+            });
+        let graphemes = t
+            .params
+            .get("graphemes")
+            .map_or(Slice::empty(), |x| match x.value {
+                ParamKind::Slice(s) => s,
+                _ => Slice::empty(),
+            });
 
-        Str {
+        StringType {
             format: None,
             length,
             graphemes,
@@ -171,16 +187,15 @@ impl Type for Str {
         AtpTypes::String(AtpString {
             description: None,
             format: self.format,
-            min_length: self.length.map_or(None, |x| x.start),
-            max_length: self.length.map_or(None, |x| x.end),
-            min_graphemes: self.graphemes.map_or(None, |x| x.start),
-            max_graphemes: self.graphemes.map_or(None, |x| x.end),
+            min_length: self.length.start,
+            max_length: self.length.end,
+            min_graphemes: self.graphemes.start,
+            max_graphemes: self.graphemes.end,
             known_values: None,
             enumeration: None,
             default: self.default,
             constant: self.constant,
-        });
-        todo!()
+        })
     }
 }
 
@@ -283,7 +298,30 @@ mod tests {
         let generic_type = extract_generic_type(src, &node).unwrap();
         assert!(generic_type.name == "String");
         assert!(generic_type.params.len() == 2);
-        assert!(generic_type.params[0].name == "len");
-        assert!(generic_type.params[1].value == ParamKind::String("did".to_string()));
+        match generic_type.params.get("len").unwrap().value {
+            ParamKind::Slice(slice) => {
+                assert!(slice.start == Some(1));
+                assert!(slice.end == Some(10));
+            }
+            _ => panic!("Unexpected value type"),
+        };
+        assert!(
+            generic_type.params.get("format").unwrap().value
+                == ParamKind::String("did".to_string())
+        );
+    }
+
+    #[test]
+    fn extract_string_type_test() {
+        let src = "@@[ String(len=42..69, format=\"did\") ]@@";
+        let tree = parse(&src);
+        let node = unwrap_harness(&tree);
+        let generic_type = extract_generic_type(src, &node).unwrap();
+        let string_type = StringType::from_generic(generic_type);
+        //assert!(string_type.format == Some(StringFormats::Did));
+        assert!(string_type.length.start == Some(42));
+        assert!(string_type.length.end == Some(69));
+        assert!(string_type.graphemes.start == None);
+        assert!(string_type.graphemes.end == None);
     }
 }

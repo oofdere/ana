@@ -96,6 +96,26 @@ pub enum StringFormats {
     Language,
 }
 
+impl StringFormats {
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "at-identifier" => Some(StringFormats::AtIdentifier),
+            "at-uri" => Some(StringFormats::AtUri),
+            "cid" => Some(StringFormats::Cid),
+            "datetime" => Some(StringFormats::Datetime),
+            "did" => Some(StringFormats::Did),
+            "handle" => Some(StringFormats::Handle),
+            "nsid" => Some(StringFormats::Nsid),
+            "tid" => Some(StringFormats::Tid),
+            "uri" => Some(StringFormats::Uri),
+            "record-key" => Some(StringFormats::RecordKey),
+            "language" => Some(StringFormats::Language),
+            _ => None,
+        }
+    }
+}
+
+// move this into the above impl later
 pub fn atp_format(f: StringFormats) -> AtpTypes {
     AtpTypes::String(AtpString {
         description: None,
@@ -165,7 +185,7 @@ schema_type!(AtpBytes, "bytes", {
   max_length: None
 }, r###"{
     "type": "bytes",
-    "description": "someone please take a byte out of me", 
+    "description": "someone please take a byte out of me",
     "minLength": 1,
     "maxLength": 512
 }"###);

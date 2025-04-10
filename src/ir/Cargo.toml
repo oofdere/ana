@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+lexicon = { version = "0.1.0", path = "../lexicon" }
 tree-sitter = "0.25.3"
 tree-sitter-ana = { version = "0.1.1", path = "../tree-sitter-ana" }
