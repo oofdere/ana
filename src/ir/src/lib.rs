@@ -33,32 +33,32 @@ pub fn extract_integer(src: &str, node: &Node) -> Option<u32> {
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
-pub struct Slice<T> {
-    pub start: Option<T>,
-    pub end: Option<T>,
+pub struct Slice {
+    pub start: Option<u32>,
+    pub end: Option<u32>,
     pub loc: Option<Range>,
 }
 
-pub fn extract_slice(src: &str, node: &Node) -> Slice<u32> {
-    // TODO fix slice start and end bytes, take from min and max instead of node
-    // slice can be an anonymous node so we don't match on it and everything explodes instead
-    // this means any node can be passed in and you get a start and end range always
-    let min = node
-        .child_by_field_name("min")
-        .and_then(|x| extract_integer(&src, &x));
-    let max = node
-        .child_by_field_name("max")
-        .and_then(|x| extract_integer(&src, &x));
+impl Slice {
+    fn from(src: &str, node: &Node) -> Slice {
+        // TODO fix slice start and end bytes, take from min and max instead of node
+        // slice can be an anonymous node so we don't match on it and everything explodes instead
+        // this means any node can be passed in and you get a start and end range always
+        let min = node
+            .child_by_field_name("min")
+            .and_then(|x| extract_integer(&src, &x));
+        let max = node
+            .child_by_field_name("max")
+            .and_then(|x| extract_integer(&src, &x));
 
-    Slice {
-        start: min,
-        end: max,
-        loc: Some(node.range()),
+        Slice {
+            start: min,
+            end: max,
+            loc: Some(node.range()),
+        }
     }
-}
 
-impl Slice<u32> {
-    fn empty() -> Slice<u32> {
+    fn empty() -> Slice {
         Slice {
             start: None,
             end: None,
@@ -78,28 +78,30 @@ pub struct Param {
 pub enum ParamKind {
     String(String),
     Integer(u32),
-    Slice(Slice<u32>),
+    Slice(Slice),
 }
 
-pub fn extract_param(src: &str, node: &Node) -> Result<Param, ()> {
-    match node.kind() {
-        "param" => {
-            let name = node.named_child(0).unwrap().str(&src);
-            let value = node.named_child(1).unwrap();
-            let kind = match value.kind() {
-                "string" => Ok(ParamKind::String(extract_string(&src, &value).unwrap())),
-                "integer" => Ok(ParamKind::Integer(extract_integer(&src, &value).unwrap())),
-                "slice" => Ok(ParamKind::Slice(extract_slice(&src, &value))),
-                _ => Err(()),
-            };
+impl Param {
+    pub fn from(src: &str, node: &Node) -> Result<Param, ()> {
+        match node.kind() {
+            "param" => {
+                let name = node.named_child(0).unwrap().str(&src);
+                let value = node.named_child(1).unwrap();
+                let kind = match value.kind() {
+                    "string" => Ok(ParamKind::String(extract_string(&src, &value).unwrap())),
+                    "integer" => Ok(ParamKind::Integer(extract_integer(&src, &value).unwrap())),
+                    "slice" => Ok(ParamKind::Slice(Slice::from(&src, &value))),
+                    _ => Err(()),
+                };
 
-            Ok(Param {
-                name,
-                value: kind?,
-                loc: node.range(),
-            })
+                Ok(Param {
+                    name,
+                    value: kind?,
+                    loc: node.range(),
+                })
+            }
+            _ => Err(()),
         }
-        _ => Err(()),
     }
 }
 
@@ -107,32 +109,34 @@ pub fn extract_param(src: &str, node: &Node) -> Result<Param, ()> {
 pub struct GenericType {
     pub name: String,
     pub params: HashMap<Box<str>, Param>,
-    pub slice: Slice<u32>,
+    pub slice: Slice,
     pub loc: Range,
 }
 
-pub fn extract_generic_type(src: &str, node: &Node) -> Result<GenericType, ()> {
-    // this function extracts generic type info from a type node
-    // generic types are not part of the IR and should be converted to a specific type
+impl GenericType {
+    pub fn from(src: &str, node: &Node) -> Result<GenericType, ()> {
+        // this function extracts generic type info from a type node
+        // generic types are not part of the IR and should be converted to a specific type
 
-    match node.kind() {
-        "type" => {
-            let mut cursor = node.walk();
-            let name = node.named_child(0).unwrap().str(&src);
-            let params = node
-                .children_by_field_name("param", &mut cursor)
-                .map(|x| extract_param(&src, &x).unwrap())
-                .map(|x| (x.name.clone().into_boxed_str(), x));
-            let slice = extract_slice(&src, &node);
+        match node.kind() {
+            "type" => {
+                let mut cursor = node.walk();
+                let name = node.named_child(0).unwrap().str(&src);
+                let params = node
+                    .children_by_field_name("param", &mut cursor)
+                    .map(|x| Param::from(&src, &x).unwrap())
+                    .map(|x| (x.name.clone().into_boxed_str(), x));
+                let slice = Slice::from(&src, &node);
 
-            Ok(GenericType {
-                name,
-                params: params.collect(),
-                slice,
-                loc: node.range(),
-            })
+                Ok(GenericType {
+                    name,
+                    params: params.collect(),
+                    slice,
+                    loc: node.range(),
+                })
+            }
+            _ => Err(()),
         }
-        _ => Err(()),
     }
 }
 
@@ -146,8 +150,8 @@ pub trait Type {
 
 pub struct StringType {
     pub format: Option<StringFormats>,
-    pub length: Slice<u32>,
-    pub graphemes: Slice<u32>,
+    pub length: Slice,
+    pub graphemes: Slice,
     //known_values: todo!(),
     //enumeration: todo!(),
     pub default: Option<String>,
@@ -206,21 +210,23 @@ pub struct Prop {
     pub loc: Range,
 }
 
-pub fn extract_prop(src: &str, node: &Node) -> Result<Prop, ()> {
-    // TODO: handle optional properties
-    match node.kind() {
-        "property" => {
-            let name = node.named_child(0).unwrap().str(&src);
-            let value = node.named_child(1).unwrap();
-            let kind = value.str(src);
+impl Prop {
+    pub fn from(src: &str, node: &Node) -> Result<Prop, ()> {
+        // TODO: handle optional properties
+        match node.kind() {
+            "property" => {
+                let name = node.named_child(0).unwrap().str(&src);
+                let value = node.named_child(1).unwrap();
+                let kind = value.str(src);
 
-            Ok(Prop {
-                name,
-                value: kind,
-                loc: node.range(),
-            })
+                Ok(Prop {
+                    name,
+                    value: kind,
+                    loc: node.range(),
+                })
+            }
+            _ => Err(()),
         }
-        _ => Err(()),
     }
 }
 
@@ -259,31 +265,31 @@ mod tests {
     }
 
     #[test]
-    fn extract_slice_test() {
+    fn slice_from_test() {
         let src = "@@[ 1..2 ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        assert!(1 == extract_slice(src, &node).start.unwrap());
-        assert!(2 == extract_slice(src, &node).end.unwrap());
+        assert!(1 == Slice::from(src, &node).start.unwrap());
+        assert!(2 == Slice::from(src, &node).end.unwrap());
     }
 
     #[test]
-    fn extract_param_test() {
+    fn param_from_test() {
         let src = "@@[ foo=42 ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let param = extract_param(src, &node).unwrap();
+        let param = Param::from(src, &node).unwrap();
         assert!(param.value == ParamKind::Integer(42));
         assert!(param.loc.start_byte == 4);
         assert!(param.loc.end_byte == 10);
     }
 
     #[test]
-    fn extract_prop_test() {
+    fn prop_from_test() {
         let src = "@@[ foo: #ref ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let prop = extract_prop(src, &node).unwrap();
+        let prop = Prop::from(src, &node).unwrap();
         assert!(prop.name == "foo");
         assert!(prop.value == "#ref");
         assert!(prop.loc.start_byte == 4);
@@ -291,11 +297,11 @@ mod tests {
     }
 
     #[test]
-    fn extract_generic_type_test() {
+    fn generic_type_from_test() {
         let src = "@@[ String(len=1..10, format=\"did\") ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = extract_generic_type(src, &node).unwrap();
+        let generic_type = GenericType::from(src, &node).unwrap();
         assert!(generic_type.name == "String");
         assert!(generic_type.params.len() == 2);
         match generic_type.params.get("len").unwrap().value {
@@ -316,7 +322,7 @@ mod tests {
         let src = "@@[ String(len=42..69, format=\"did\") ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = extract_generic_type(src, &node).unwrap();
+        let generic_type = GenericType::from(src, &node).unwrap();
         let string_type = StringType::from_generic(generic_type);
         //assert!(string_type.format == Some(StringFormats::Did));
         assert!(string_type.length.start == Some(42));
