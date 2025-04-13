@@ -143,9 +143,6 @@ impl GenericType {
 pub trait Type {
     /// convert from a GenericType to Self, returns an Option with None if there are any errors during conversion
     fn from_generic(t: GenericType) -> Self;
-
-    /// convert to a lexicon type
-    fn into(self) -> AtpTypes;
 }
 
 pub struct StringType {
@@ -159,8 +156,8 @@ pub struct StringType {
     pub loc: Range,
 }
 
-impl Type for StringType {
-    fn from_generic(t: GenericType) -> Self {
+impl From<GenericType> for StringType {
+    fn from(t: GenericType) -> Self {
         //let format = t.params.get("format");
         let length = t
             .params
@@ -186,9 +183,11 @@ impl Type for StringType {
             loc: t.loc,
         }
     }
+}
 
-    fn into(self) -> AtpTypes {
-        AtpTypes::String(AtpString {
+impl Into<AtpString> for StringType {
+    fn into(self) -> AtpString {
+        AtpString {
             description: None,
             format: self.format,
             min_length: self.length.start,
@@ -199,7 +198,13 @@ impl Type for StringType {
             enumeration: None,
             default: self.default,
             constant: self.constant,
-        })
+        }
+    }
+}
+
+impl Into<AtpTypes> for StringType {
+    fn into(self) -> AtpTypes {
+        AtpTypes::String(self.into())
     }
 }
 
@@ -323,7 +328,7 @@ mod tests {
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
         let generic_type = GenericType::from(src, &node).unwrap();
-        let string_type = StringType::from_generic(generic_type);
+        let string_type = StringType::from(generic_type);
         //assert!(string_type.format == Some(StringFormats::Did));
         assert!(string_type.length.start == Some(42));
         assert!(string_type.length.end == Some(69));
