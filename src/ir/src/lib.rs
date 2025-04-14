@@ -145,6 +145,7 @@ pub trait Type {
     fn from_generic(t: GenericType) -> Self;
 }
 
+#[derive(Debug, PartialEq)]
 pub struct StringType {
     pub format: Option<StringFormats>,
     pub length: Slice,
@@ -211,8 +212,21 @@ impl Into<AtpTypes> for StringType {
 #[derive(Debug)]
 pub struct Prop {
     pub name: String,
-    pub value: String,
+    pub value: PropKind,
     pub loc: Range,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum PropKind {
+    String(StringType),
+    Null, //Number(NumberType),
+          //Boolean(BooleanType),
+}
+
+impl From<GenericType> for PropKind {
+    fn from(value: GenericType) -> Self {
+        PropKind::String(StringType::from(value)) // handle all types here in a match
+    }
 }
 
 impl Prop {
@@ -221,12 +235,13 @@ impl Prop {
         match node.kind() {
             "property" => {
                 let name = node.named_child(0).unwrap().str(&src);
-                let value = node.named_child(1).unwrap();
-                let kind = value.str(src);
+
+                let value =
+                    PropKind::from(GenericType::from(&src, &node.named_child(1).unwrap()).unwrap());
 
                 Ok(Prop {
                     name,
-                    value: kind,
+                    value,
                     loc: node.range(),
                 })
             }
@@ -291,14 +306,18 @@ mod tests {
 
     #[test]
     fn prop_from_test() {
-        let src = "@@[ foo: #ref ]@@";
+        let src = "@@[ foo: String ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
         let prop = Prop::from(src, &node).unwrap();
         assert!(prop.name == "foo");
-        assert!(prop.value == "#ref");
+        if let PropKind::String(_) = prop.value {
+            // Prop is a string type
+        } else {
+            panic!("Expected string type");
+        }
         assert!(prop.loc.start_byte == 4);
-        assert!(prop.loc.end_byte == 13);
+        assert!(prop.loc.end_byte == 15);
     }
 
     #[test]
