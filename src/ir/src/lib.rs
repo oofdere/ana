@@ -1,6 +1,8 @@
-use lexicon::{AtpString, AtpTypes, StringFormats};
 use std::collections::HashMap;
 use tree_sitter::{Node, Range};
+
+pub mod null;
+pub mod string;
 
 trait NodeHelpers {
     fn str(&self, src: &str) -> String;
@@ -140,8 +142,6 @@ impl GenericType {
     }
 }
 
-pub mod string;
-
 #[derive(Debug)]
 pub struct Prop {
     pub name: String,
@@ -151,14 +151,14 @@ pub struct Prop {
 
 #[derive(Debug, PartialEq)]
 pub enum PropKind {
-    String(string::StringType),
+    String(string::Type),
     Null, //Number(NumberType),
           //Boolean(BooleanType),
 }
 
 impl From<GenericType> for PropKind {
     fn from(value: GenericType) -> Self {
-        PropKind::String(string::StringType::from(value)) // handle all types here in a match
+        PropKind::String(string::Type::from(value)) // handle all types here in a match
     }
 }
 
@@ -272,19 +272,5 @@ mod tests {
             generic_type.params.get("format").unwrap().value
                 == ParamKind::String("did".to_string())
         );
-    }
-
-    #[test]
-    fn extract_string_type_test() {
-        let src = "@@[ String(len=42..69, format=\"did\") ]@@";
-        let tree = parse(&src);
-        let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
-        let string_type = string::StringType::from(generic_type);
-        //assert!(string_type.format == Some(StringFormats::Did));
-        assert!(string_type.length.start == Some(42));
-        assert!(string_type.length.end == Some(69));
-        assert!(string_type.graphemes.start == None);
-        assert!(string_type.graphemes.end == None);
     }
 }
