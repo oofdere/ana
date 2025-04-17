@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use tree_sitter::{Node, Range};
 
+pub mod boolean;
 pub mod null;
 pub mod string;
 
