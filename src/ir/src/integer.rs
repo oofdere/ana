@@ -1,4 +1,4 @@
-use lexicon::{AtpBoolean, AtpTypes};
+use lexicon::{AtpInteger, AtpTypes};
 use tree_sitter::Range;
 
 use crate::{GenericType, ParamKind, Slice};
@@ -32,19 +32,22 @@ impl From<GenericType> for Type {
     }
 }
 
-impl Into<AtpBoolean> for Type {
-    fn into(self) -> AtpBoolean {
-        AtpBoolean {
+impl Into<AtpInteger> for Type {
+    fn into(self) -> AtpInteger {
+        AtpInteger {
             description: None,
             constant: None,
-            default: None,
+            default: self.default,
+            minimum: self.range.start,
+            maximum: self.range.end,
+            enumeration: None, // todo
         }
     }
 }
 
 impl Into<AtpTypes> for Type {
     fn into(self) -> AtpTypes {
-        AtpTypes::Boolean(self.into())
+        AtpTypes::Integer(self.into())
     }
 }
 
