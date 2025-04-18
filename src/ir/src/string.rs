@@ -32,9 +32,13 @@ impl From<GenericType> for Type {
                 ParamKind::Slice(s) => s,
                 _ => Slice::empty(),
             });
+        let format = t.params.get("format").map_or(None, |x| match &x.value {
+            ParamKind::String(s) => Some(s),
+            _ => None,
+        });
 
         Type {
-            format: None,
+            format: format.and_then(|x| StringFormats::from_str(x)),
             length,
             graphemes,
             default: None,
@@ -86,13 +90,63 @@ mod tests {
     }
 
     #[test]
-    fn extract_string_type_test() {
+    fn base() {
+        let src = "@@[ String ]@@";
+        let tree = parse(&src);
+        let node = unwrap_harness(&tree);
+        let generic_type = GenericType::from(src, &node).unwrap();
+        let string_type = Type::from(generic_type);
+        assert!(string_type.format == None);
+        assert!(string_type.length.start == None);
+        assert!(string_type.length.end == None);
+        assert!(string_type.graphemes.start == None);
+        assert!(string_type.graphemes.end == None);
+    }
+
+    #[test]
+    fn len() {
+        let src = "@@[ String(len=42..69) ]@@";
+        let tree = parse(&src);
+        let node = unwrap_harness(&tree);
+        let generic_type = GenericType::from(src, &node).unwrap();
+        let string_type = Type::from(generic_type);
+        assert!(string_type.length.start == Some(42));
+        assert!(string_type.length.end == Some(69));
+        assert!(string_type.graphemes.start == None);
+        assert!(string_type.graphemes.end == None);
+    }
+
+    #[test]
+    fn graphemes() {
+        let src = "@@[ String(graphemes=42..69) ]@@";
+        let tree = parse(&src);
+        let node = unwrap_harness(&tree);
+        let generic_type = GenericType::from(src, &node).unwrap();
+        let string_type = Type::from(generic_type);
+        assert!(string_type.graphemes.start == Some(42));
+        assert!(string_type.graphemes.end == Some(69));
+        assert!(string_type.length.start == None);
+        assert!(string_type.length.end == None);
+    }
+
+    #[test]
+    fn format() {
+        let src = "@@[ String(format=\"did\") ]@@";
+        let tree = parse(&src);
+        let node = unwrap_harness(&tree);
+        let generic_type = GenericType::from(src, &node).unwrap();
+        let string_type = Type::from(generic_type);
+        assert!(string_type.format == Some(StringFormats::Did));
+    }
+
+    #[test]
+    fn complex() {
         let src = "@@[ String(len=42..69, format=\"did\") ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
         let generic_type = GenericType::from(src, &node).unwrap();
         let string_type = Type::from(generic_type);
-        //assert!(string_type.format == Some(StringFormats::Did));
+        assert!(string_type.format == Some(StringFormats::Did));
         assert!(string_type.length.start == Some(42));
         assert!(string_type.length.end == Some(69));
         assert!(string_type.graphemes.start == None);
