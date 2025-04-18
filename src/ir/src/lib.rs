@@ -3,6 +3,7 @@ use std::{collections::HashMap, fmt::Debug, str::FromStr};
 use tree_sitter::{Node, Range};
 
 pub mod boolean;
+pub mod bytes;
 pub mod integer;
 pub mod null;
 pub mod string;
