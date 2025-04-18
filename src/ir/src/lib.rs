@@ -2,6 +2,7 @@ use num_traits::PrimInt;
 use std::{collections::HashMap, fmt::Debug, str::FromStr};
 use tree_sitter::{Node, Range};
 
+pub mod blob;
 pub mod boolean;
 pub mod bytes;
 pub mod cid_link;
