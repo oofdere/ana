@@ -1,7 +1,9 @@
-use std::collections::HashMap;
+use num_traits::PrimInt;
+use std::{collections::HashMap, fmt::Debug, str::FromStr};
 use tree_sitter::{Node, Range};
 
 pub mod boolean;
+pub mod integer;
 pub mod null;
 pub mod string;
 
@@ -28,17 +30,21 @@ pub fn extract_string(src: &str, node: &Node) -> Option<String> {
     }
 }
 
-pub fn extract_integer(src: &str, node: &Node) -> Option<u32> {
+pub fn extract_integer<T: PrimInt + FromStr>(src: &str, node: &Node) -> Option<T>
+where
+    T: PrimInt + FromStr,
+    <T as FromStr>::Err: Debug,
+{
     match node.kind() {
-        "integer" => Some(node.str(&src).parse().unwrap()),
+        "integer" => Some(node.str(&src).parse::<T>().unwrap()),
         _ => None,
     }
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Slice {
-    pub start: Option<u32>,
-    pub end: Option<u32>,
+    pub start: Option<i32>,
+    pub end: Option<i32>,
     pub loc: Option<Range>,
 }
 
@@ -80,7 +86,7 @@ pub struct Param {
 #[derive(Debug, PartialEq)]
 pub enum ParamKind {
     String(String),
-    Integer(u32),
+    Integer(i32),
     Slice(Slice),
 }
 

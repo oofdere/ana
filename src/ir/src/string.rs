@@ -3,13 +3,8 @@ use tree_sitter::Range;
 
 use crate::{GenericType, ParamKind, Slice};
 
-pub trait Type {
-    /// convert from a GenericType to Self, returns an Option with None if there are any errors during conversion
-    fn from_generic(t: GenericType) -> Self;
-}
-
 #[derive(Debug, PartialEq)]
-pub struct StringType {
+pub struct Type {
     pub format: Option<StringFormats>,
     pub length: Slice,
     pub graphemes: Slice,
@@ -20,7 +15,7 @@ pub struct StringType {
     pub loc: Range,
 }
 
-impl From<GenericType> for StringType {
+impl From<GenericType> for Type {
     fn from(t: GenericType) -> Self {
         //let format = t.params.get("format");
         let length = t
@@ -38,7 +33,7 @@ impl From<GenericType> for StringType {
                 _ => Slice::empty(),
             });
 
-        StringType {
+        Type {
             format: None,
             length,
             graphemes,
@@ -49,15 +44,15 @@ impl From<GenericType> for StringType {
     }
 }
 
-impl Into<AtpString> for StringType {
+impl Into<AtpString> for Type {
     fn into(self) -> AtpString {
         AtpString {
             description: None,
             format: self.format,
-            min_length: self.length.start,
-            max_length: self.length.end,
-            min_graphemes: self.graphemes.start,
-            max_graphemes: self.graphemes.end,
+            min_length: self.length.start.and_then(|x| x.try_into().ok()),
+            max_length: self.length.end.and_then(|x| x.try_into().ok()),
+            min_graphemes: self.graphemes.start.and_then(|x| x.try_into().ok()),
+            max_graphemes: self.graphemes.end.and_then(|x| x.try_into().ok()),
             known_values: None,
             enumeration: None,
             default: self.default,
@@ -66,8 +61,41 @@ impl Into<AtpString> for StringType {
     }
 }
 
-impl Into<AtpTypes> for StringType {
+impl Into<AtpTypes> for Type {
     fn into(self) -> AtpTypes {
         AtpTypes::String(self.into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tree_sitter::{Node, Parser, Tree};
+
+    use super::*;
+
+    fn unwrap_harness(tree: &Tree) -> Node {
+        tree.root_node().child(1).unwrap()
+    }
+
+    fn parse(src: &str) -> Tree {
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_ana::LANGUAGE.into())
+            .expect("error loading ana grammar");
+        parser.parse(src, None).unwrap()
+    }
+
+    #[test]
+    fn extract_string_type_test() {
+        let src = "@@[ String(len=42..69, format=\"did\") ]@@";
+        let tree = parse(&src);
+        let node = unwrap_harness(&tree);
+        let generic_type = GenericType::from(src, &node).unwrap();
+        let string_type = Type::from(generic_type);
+        //assert!(string_type.format == Some(StringFormats::Did));
+        assert!(string_type.length.start == Some(42));
+        assert!(string_type.length.end == Some(69));
+        assert!(string_type.graphemes.start == None);
+        assert!(string_type.graphemes.end == None);
     }
 }

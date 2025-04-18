@@ -367,6 +367,7 @@ name = "ir"
 version = "0.1.0"
 dependencies = [
  "lexicon",
+ "num-traits",
  "tree-sitter",
  "tree-sitter-ana",
 ]
