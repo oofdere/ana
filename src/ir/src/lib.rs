@@ -1,14 +1,8 @@
 use num_traits::PrimInt;
-use std::{collections::HashMap, fmt::Debug, str::FromStr};
+use std::{fmt::Debug, str::FromStr};
 use tree_sitter::{Node, Range};
 
-pub mod blob;
-pub mod boolean;
-pub mod bytes;
-pub mod cid_link;
-pub mod integer;
-pub mod null;
-pub mod string;
+pub mod props;
 
 trait NodeHelpers {
     fn str(&self, src: &str) -> String;
@@ -94,6 +88,7 @@ pub enum ParamKind {
 }
 
 impl Param {
+    // e.g. foo="bar"
     pub fn from(src: &str, node: &Node) -> Result<Param, ()> {
         match node.kind() {
             "param" => {
@@ -109,82 +104,6 @@ impl Param {
                 Ok(Param {
                     name,
                     value: kind?,
-                    loc: node.range(),
-                })
-            }
-            _ => Err(()),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct GenericType {
-    pub name: String,
-    pub params: HashMap<Box<str>, Param>,
-    pub slice: Slice,
-    pub loc: Range,
-}
-
-impl GenericType {
-    pub fn from(src: &str, node: &Node) -> Result<GenericType, ()> {
-        // this function extracts generic type info from a type node
-        // generic types are not part of the IR and should be converted to a specific type
-
-        match node.kind() {
-            "type" => {
-                let mut cursor = node.walk();
-                let name = node.named_child(0).unwrap().str(&src);
-                let params = node
-                    .children_by_field_name("param", &mut cursor)
-                    .map(|x| Param::from(&src, &x).unwrap())
-                    .map(|x| (x.name.clone().into_boxed_str(), x));
-                let slice = Slice::from(&src, &node);
-
-                Ok(GenericType {
-                    name,
-                    params: params.collect(),
-                    slice,
-                    loc: node.range(),
-                })
-            }
-            _ => Err(()),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Prop {
-    pub name: String,
-    pub value: PropKind,
-    pub loc: Range,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum PropKind {
-    String(string::Type),
-    Null, //Number(NumberType),
-          //Boolean(BooleanType),
-}
-
-impl From<GenericType> for PropKind {
-    fn from(value: GenericType) -> Self {
-        PropKind::String(string::Type::from(value)) // handle all types here in a match
-    }
-}
-
-impl Prop {
-    pub fn from(src: &str, node: &Node) -> Result<Prop, ()> {
-        // TODO: handle optional properties
-        match node.kind() {
-            "property" => {
-                let name = node.named_child(0).unwrap().str(&src);
-
-                let value =
-                    PropKind::from(GenericType::from(&src, &node.named_child(1).unwrap()).unwrap());
-
-                Ok(Prop {
-                    name,
-                    value,
                     loc: node.range(),
                 })
             }
@@ -245,42 +164,5 @@ mod tests {
         assert!(param.value == ParamKind::Integer(42));
         assert!(param.loc.start_byte == 4);
         assert!(param.loc.end_byte == 10);
-    }
-
-    #[test]
-    fn prop_from_test() {
-        let src = "@@[ foo: String ]@@";
-        let tree = parse(&src);
-        let node = unwrap_harness(&tree);
-        let prop = Prop::from(src, &node).unwrap();
-        assert!(prop.name == "foo");
-        if let PropKind::String(_) = prop.value {
-            // Prop is a string type
-        } else {
-            panic!("Expected string type");
-        }
-        assert!(prop.loc.start_byte == 4);
-        assert!(prop.loc.end_byte == 15);
-    }
-
-    #[test]
-    fn generic_type_from_test() {
-        let src = "@@[ String(len=1..10, format=\"did\") ]@@";
-        let tree = parse(&src);
-        let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
-        assert!(generic_type.name == "String");
-        assert!(generic_type.params.len() == 2);
-        match generic_type.params.get("len").unwrap().value {
-            ParamKind::Slice(slice) => {
-                assert!(slice.start == Some(1));
-                assert!(slice.end == Some(10));
-            }
-            _ => panic!("Unexpected value type"),
-        };
-        assert!(
-            generic_type.params.get("format").unwrap().value
-                == ParamKind::String("did".to_string())
-        );
     }
 }

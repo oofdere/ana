@@ -1,7 +1,7 @@
 use lexicon::{AtpBlob, AtpTypes};
 use tree_sitter::Range;
 
-use crate::{GenericType, ParamKind};
+use crate::{ParamKind, props::GenericType};
 
 #[derive(Debug, PartialEq)]
 pub struct Type {

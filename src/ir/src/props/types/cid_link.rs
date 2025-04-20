@@ -1,7 +1,7 @@
-use lexicon::{AtpNull, AtpTypes};
+use lexicon::{AtpCidLink, AtpTypes};
 use tree_sitter::Range;
 
-use crate::GenericType;
+use crate::props::GenericType;
 
 #[derive(Debug, PartialEq)]
 pub struct Type {
@@ -14,15 +14,15 @@ impl From<GenericType> for Type {
     }
 }
 
-impl Into<AtpNull> for Type {
-    fn into(self) -> AtpNull {
-        AtpNull { description: None }
+impl Into<AtpCidLink> for Type {
+    fn into(self) -> AtpCidLink {
+        AtpCidLink { description: None }
     }
 }
 
 impl Into<AtpTypes> for Type {
     fn into(self) -> AtpTypes {
-        AtpTypes::Null(self.into())
+        AtpTypes::CidLink(self.into())
     }
 }
 

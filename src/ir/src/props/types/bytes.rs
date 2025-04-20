@@ -1,36 +1,41 @@
-use lexicon::{AtpBoolean, AtpTypes};
+use lexicon::{AtpBytes, AtpTypes};
 use tree_sitter::Range;
 
-use crate::GenericType;
+use crate::{ParamKind, Slice, props::GenericType};
 
 #[derive(Debug, PartialEq)]
 pub struct Type {
-    pub default: Option<bool>,
+    pub size: Slice,
     pub loc: Range,
 }
 
 impl From<GenericType> for Type {
     fn from(t: GenericType) -> Self {
-        Type {
-            default: None,
-            loc: t.loc,
-        }
+        let size = t
+            .params
+            .get("size")
+            .map_or(Slice::empty(), |x| match x.value {
+                ParamKind::Slice(s) => s,
+                _ => Slice::empty(),
+            });
+
+        Type { size, loc: t.loc }
     }
 }
 
-impl Into<AtpBoolean> for Type {
-    fn into(self) -> AtpBoolean {
-        AtpBoolean {
+impl Into<AtpBytes> for Type {
+    fn into(self) -> AtpBytes {
+        AtpBytes {
             description: None,
-            constant: None,
-            default: None,
+            min_length: self.size.start.and_then(|x| x.try_into().ok()),
+            max_length: self.size.end.and_then(|x| x.try_into().ok()),
         }
     }
 }
 
 impl Into<AtpTypes> for Type {
     fn into(self) -> AtpTypes {
-        AtpTypes::Boolean(self.into())
+        AtpTypes::Bytes(self.into())
     }
 }
 
@@ -54,24 +59,22 @@ mod tests {
 
     #[test]
     fn base() {
-        let src = "@@[ Boolean ]@@";
+        let src = "@@[ Bytes ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
         let generic_type = GenericType::from(src, &node).unwrap();
-        let boolean_type = Type::from(generic_type);
-        assert!(boolean_type.loc.start_byte == 4);
-        assert!(boolean_type.loc.end_byte == 11);
+        let integer_type = Type::from(generic_type);
+        assert!(integer_type.size == Slice::empty())
     }
 
     #[test]
-    #[ignore] // TODO: implement bool primative in grammar
-    fn default_value() {
-        let src = "@@[ Boolean(default=True) ]@@";
+    fn size() {
+        let src = "@@[ Bytes(size=4096..8192) ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
         let generic_type = GenericType::from(src, &node).unwrap();
-        let boolean_type = Type::from(generic_type);
-        assert!(boolean_type.loc.start_byte == 4);
-        assert!(boolean_type.loc.end_byte == 8);
+        let integer_type = Type::from(generic_type);
+        assert!(integer_type.size.start == Some(4096));
+        assert!(integer_type.size.end == Some(8192));
     }
 }
