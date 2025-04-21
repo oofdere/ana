@@ -1,7 +1,7 @@
 use lexicon::{AtpBytes, AtpTypes};
 use tree_sitter::Range;
 
-use crate::{ParamKind, Slice, props::GenericType};
+use crate::{ParamKind, Slice, props::GenericProp};
 
 #[derive(Debug, PartialEq)]
 pub struct Type {
@@ -9,8 +9,8 @@ pub struct Type {
     pub loc: Range,
 }
 
-impl From<GenericType> for Type {
-    fn from(t: GenericType) -> Self {
+impl From<GenericProp> for Type {
+    fn from(t: GenericProp) -> Self {
         let size = t
             .params
             .get("size")
@@ -62,7 +62,7 @@ mod tests {
         let src = "@@[ Bytes ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let integer_type = Type::from(generic_type);
         assert!(integer_type.size == Slice::empty())
     }
@@ -72,7 +72,7 @@ mod tests {
         let src = "@@[ Bytes(size=4096..8192) ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let integer_type = Type::from(generic_type);
         assert!(integer_type.size.start == Some(4096));
         assert!(integer_type.size.end == Some(8192));

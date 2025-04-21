@@ -22,8 +22,8 @@ pub enum PropKind {
           //Boolean(BooleanType),
 }
 
-impl From<GenericType> for PropKind {
-    fn from(value: GenericType) -> Self {
+impl From<GenericProp> for PropKind {
+    fn from(value: GenericProp) -> Self {
         PropKind::String(string::Type::from(value)) // handle all types here in a match
     }
 }
@@ -36,7 +36,7 @@ impl Prop {
                 let name = node.named_child(0).unwrap().str(&src);
 
                 let value =
-                    PropKind::from(GenericType::from(&src, &node.named_child(1).unwrap()).unwrap());
+                    PropKind::from(GenericProp::from(&src, &node.named_child(1).unwrap()).unwrap());
 
                 Ok(Prop {
                     name,
@@ -50,15 +50,15 @@ impl Prop {
 }
 
 #[derive(Debug)]
-pub struct GenericType {
+pub struct GenericProp {
     pub name: String,
     pub params: HashMap<Box<str>, Param>,
     pub slice: Slice,
     pub loc: Range,
 }
 
-impl GenericType {
-    pub fn from(src: &str, node: &Node) -> Result<GenericType, ()> {
+impl GenericProp {
+    pub fn from(src: &str, node: &Node) -> Result<GenericProp, ()> {
         // this function extracts generic type info from a type node
         // generic types are not part of the IR and should be converted to a specific type
 
@@ -72,7 +72,7 @@ impl GenericType {
                     .map(|x| (x.name.clone().into_boxed_str(), x));
                 let slice = Slice::from(&src, &node);
 
-                Ok(GenericType {
+                Ok(GenericProp {
                     name,
                     params: params.collect(),
                     slice,
@@ -88,7 +88,7 @@ impl GenericType {
 mod tests {
     use tree_sitter::{Parser, Tree};
 
-    use crate::props::GenericType;
+    use crate::props::GenericProp;
 
     use super::*;
 
@@ -125,7 +125,7 @@ mod tests {
         let src = "@@[ String(len=1..10, format=\"did\") ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         assert!(generic_type.name == "String");
         assert!(generic_type.params.len() == 2);
         match generic_type.params.get("len").unwrap().value {

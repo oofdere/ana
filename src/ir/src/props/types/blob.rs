@@ -1,7 +1,7 @@
 use lexicon::{AtpBlob, AtpTypes};
 use tree_sitter::Range;
 
-use crate::{ParamKind, props::GenericType};
+use crate::{ParamKind, props::GenericProp};
 
 #[derive(Debug, PartialEq)]
 pub struct Type {
@@ -10,8 +10,8 @@ pub struct Type {
     pub loc: Range,
 }
 
-impl From<GenericType> for Type {
-    fn from(t: GenericType) -> Self {
+impl From<GenericProp> for Type {
+    fn from(t: GenericProp) -> Self {
         let accept = t.params.get("accept").map_or(None, |x| {
             match &x.value {
                 ParamKind::String(x) => Some(vec![x.clone()]), // todo: scalar supports
@@ -71,7 +71,7 @@ mod tests {
         let src = "@@[ Blob ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let blob_type = Type::from(generic_type);
         assert!(blob_type.size == None)
     }
@@ -81,7 +81,7 @@ mod tests {
         let src = "@@[ Blob(size=1024) ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let blob_type = Type::from(generic_type);
         assert!(blob_type.size == Some(1024));
     }
@@ -91,7 +91,7 @@ mod tests {
         let src = "@@[ Blob(accept=\"image/jxl\") ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let blob_type = Type::from(generic_type);
         assert!(blob_type.accept == Some(vec!["image/jxl".to_string()]));
     }

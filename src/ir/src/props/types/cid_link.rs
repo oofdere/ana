@@ -1,15 +1,15 @@
 use lexicon::{AtpCidLink, AtpTypes};
 use tree_sitter::Range;
 
-use crate::props::GenericType;
+use crate::props::GenericProp;
 
 #[derive(Debug, PartialEq)]
 pub struct Type {
     pub loc: Range,
 }
 
-impl From<GenericType> for Type {
-    fn from(t: GenericType) -> Self {
+impl From<GenericProp> for Type {
+    fn from(t: GenericProp) -> Self {
         Type { loc: t.loc }
     }
 }
@@ -49,7 +49,7 @@ mod tests {
         let src = "@@[ Null ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let null_type = Type::from(generic_type);
         assert!(null_type.loc.start_byte == 4);
         assert!(null_type.loc.end_byte == 8);

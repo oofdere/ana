@@ -1,7 +1,7 @@
 use lexicon::{AtpBoolean, AtpTypes};
 use tree_sitter::Range;
 
-use crate::props::GenericType;
+use crate::props::GenericProp;
 
 #[derive(Debug, PartialEq)]
 pub struct Type {
@@ -9,8 +9,8 @@ pub struct Type {
     pub loc: Range,
 }
 
-impl From<GenericType> for Type {
-    fn from(t: GenericType) -> Self {
+impl From<GenericProp> for Type {
+    fn from(t: GenericProp) -> Self {
         Type {
             default: None,
             loc: t.loc,
@@ -57,7 +57,7 @@ mod tests {
         let src = "@@[ Boolean ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let boolean_type = Type::from(generic_type);
         assert!(boolean_type.loc.start_byte == 4);
         assert!(boolean_type.loc.end_byte == 11);
@@ -69,7 +69,7 @@ mod tests {
         let src = "@@[ Boolean(default=True) ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let boolean_type = Type::from(generic_type);
         assert!(boolean_type.loc.start_byte == 4);
         assert!(boolean_type.loc.end_byte == 8);

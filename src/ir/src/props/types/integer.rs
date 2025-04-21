@@ -1,7 +1,7 @@
 use lexicon::{AtpInteger, AtpTypes};
 use tree_sitter::Range;
 
-use crate::{ParamKind, Slice, props::GenericType};
+use crate::{ParamKind, Slice, props::GenericProp};
 
 #[derive(Debug, PartialEq)]
 pub struct Type {
@@ -10,8 +10,8 @@ pub struct Type {
     pub loc: Range,
 }
 
-impl From<GenericType> for Type {
-    fn from(t: GenericType) -> Self {
+impl From<GenericProp> for Type {
+    fn from(t: GenericProp) -> Self {
         let range = t
             .params
             .get("range")
@@ -74,7 +74,7 @@ mod tests {
         let src = "@@[ Integer ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let integer_type = Type::from(generic_type);
         assert!(integer_type.loc.start_byte == 4);
         assert!(integer_type.loc.end_byte == 11);
@@ -85,7 +85,7 @@ mod tests {
         let src = "@@[ Integer(default=1) ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let integer_type = Type::from(generic_type);
         assert!(integer_type.loc.start_byte == 4);
         assert!(integer_type.loc.end_byte == 22);
@@ -97,7 +97,7 @@ mod tests {
         let src = "@@[ Integer(range=42..69) ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let integer_type = Type::from(generic_type);
         assert!(integer_type.loc.start_byte == 4);
         assert!(integer_type.loc.end_byte == 25);

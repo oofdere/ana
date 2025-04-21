@@ -1,7 +1,7 @@
 use lexicon::{AtpString, AtpTypes, StringFormats};
 use tree_sitter::Range;
 
-use crate::{ParamKind, Slice, props::GenericType};
+use crate::{ParamKind, Slice, props::GenericProp};
 
 #[derive(Debug, PartialEq)]
 pub struct Type {
@@ -15,8 +15,8 @@ pub struct Type {
     pub loc: Range,
 }
 
-impl From<GenericType> for Type {
-    fn from(t: GenericType) -> Self {
+impl From<GenericProp> for Type {
+    fn from(t: GenericProp) -> Self {
         //let format = t.params.get("format");
         let length = t
             .params
@@ -94,7 +94,7 @@ mod tests {
         let src = "@@[ String ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let string_type = Type::from(generic_type);
         assert!(string_type.format == None);
         assert!(string_type.length.start == None);
@@ -108,7 +108,7 @@ mod tests {
         let src = "@@[ String(len=42..69) ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let string_type = Type::from(generic_type);
         assert!(string_type.length.start == Some(42));
         assert!(string_type.length.end == Some(69));
@@ -121,7 +121,7 @@ mod tests {
         let src = "@@[ String(graphemes=42..69) ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let string_type = Type::from(generic_type);
         assert!(string_type.graphemes.start == Some(42));
         assert!(string_type.graphemes.end == Some(69));
@@ -134,7 +134,7 @@ mod tests {
         let src = "@@[ String(format=\"did\") ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let string_type = Type::from(generic_type);
         assert!(string_type.format == Some(StringFormats::Did));
     }
@@ -144,7 +144,7 @@ mod tests {
         let src = "@@[ String(len=42..69, format=\"did\") ]@@";
         let tree = parse(&src);
         let node = unwrap_harness(&tree);
-        let generic_type = GenericType::from(src, &node).unwrap();
+        let generic_type = GenericProp::from(src, &node).unwrap();
         let string_type = Type::from(generic_type);
         assert!(string_type.format == Some(StringFormats::Did));
         assert!(string_type.length.start == Some(42));
