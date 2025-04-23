@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use tree_sitter::{Node, Range};
-use types::string;
+use types::{blob, boolean, integer, null, string};
 
 use crate::{NodeHelpers, Param, Slice};
 
@@ -17,14 +17,24 @@ pub struct Prop {
 
 #[derive(Debug, PartialEq)]
 pub enum PropKind {
+    // these are the concrete atproto types for the most part
+    Blob(blob::Type),
+    Boolean(boolean::Type),
     String(string::Type),
-    Null, //Number(NumberType),
-          //Boolean(BooleanType),
+    Integer(integer::Type),
+    Null(null::Type),
 }
 
 impl From<GenericProp> for PropKind {
     fn from(value: GenericProp) -> Self {
-        PropKind::String(string::Type::from(value)) // handle all types here in a match
+        match value.name.to_lowercase().as_str() {
+            "blob" => PropKind::Blob(blob::Type::from(value)),
+            "boolean" => PropKind::Boolean(boolean::Type::from(value)),
+            "string" => PropKind::String(string::Type::from(value)),
+            "integer" => PropKind::Integer(integer::Type::from(value)),
+            "null" => PropKind::Null(null::Type::from(value)),
+            _ => panic!("unknown type {}", value.name),
+        }
     }
 }
 
@@ -112,12 +122,32 @@ mod tests {
         let prop = Prop::from(src, &node).unwrap();
         assert!(prop.name == "foo");
         if let PropKind::String(_) = prop.value {
-            // Prop is a string type
+            // Prop is a string type :)
         } else {
             panic!("Expected string type");
         }
         assert!(prop.loc.start_byte == 4);
         assert!(prop.loc.end_byte == 15);
+    }
+
+    #[test]
+    fn prop_from_test_with_params() {
+        let src = "@@[ foo: String(len=42..69, graphemes=2..4, format=\"did\", default=\"this is not a valid did lol\", ) ]@@";
+        let tree = parse(&src);
+        let node = unwrap_harness(&tree);
+        let prop = Prop::from(src, &node).unwrap();
+        assert!(prop.name == "foo");
+        if let PropKind::String(s) = prop.value {
+            assert!(s.length.start == Some(42));
+            assert!(s.length.end == Some(69));
+            assert!(s.graphemes.end == Some(4));
+            assert!(s.graphemes.start == Some(2));
+            assert!(s.graphemes.end == Some(4));
+            assert!(s.format == Some(lexicon::StringFormats::Did));
+            // assert!(s.default == Some("this is not a valid did lol".to_string())); default not parsed yet
+        } else {
+            panic!("Expected string type");
+        }
     }
 
     #[test]

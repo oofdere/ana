@@ -37,6 +37,9 @@ impl From<GenericProp> for Type {
             _ => None,
         });
 
+        // TODO: impl default
+        // TODO: impl constant
+
         Type {
             format: format.and_then(|x| StringFormats::from_str(x)),
             length,
