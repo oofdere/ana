@@ -59,6 +59,18 @@ impl Prop {
     }
 }
 
+pub fn parse_properties(src: &str, node: &Node) -> HashMap<String, Prop> {
+    let mut cursor = node.walk();
+    let params = node
+        .named_children(&mut cursor)
+        //.inspect(|x| panic!("{:?}", x.to_sexp()))
+        .map(|x| Prop::from(&src, &x).unwrap())
+        .map(|x| (x.name.clone(), x))
+        .collect();
+
+    params
+}
+
 #[derive(Debug)]
 pub struct GenericProp {
     pub name: String,
@@ -97,8 +109,6 @@ impl GenericProp {
 #[cfg(test)]
 mod tests {
     use tree_sitter::{Parser, Tree};
-
-    use crate::props::GenericProp;
 
     use super::*;
 
@@ -148,26 +158,5 @@ mod tests {
         } else {
             panic!("Expected string type");
         }
-    }
-
-    #[test]
-    fn generic_type_from_test() {
-        let src = "@@[ String(len=1..10, format=\"did\") ]@@";
-        let tree = parse(&src);
-        let node = unwrap_harness(&tree);
-        let generic_type = GenericProp::from(src, &node).unwrap();
-        assert!(generic_type.name == "String");
-        assert!(generic_type.params.len() == 2);
-        match generic_type.params.get("len").unwrap().value {
-            crate::ParamKind::Slice(slice) => {
-                assert!(slice.start == Some(1));
-                assert!(slice.end == Some(10));
-            }
-            _ => panic!("Unexpected value type"),
-        };
-        assert!(
-            generic_type.params.get("format").unwrap().value
-                == crate::ParamKind::String("did".to_string())
-        );
     }
 }

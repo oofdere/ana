@@ -2,6 +2,7 @@ use num_traits::PrimInt;
 use std::{fmt::Debug, str::FromStr};
 use tree_sitter::{Node, Range};
 
+pub mod object;
 pub mod props;
 
 trait NodeHelpers {
