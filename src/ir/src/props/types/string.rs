@@ -36,16 +36,21 @@ impl From<GenericProp> for Type {
             ParamKind::String(s) => Some(s),
             _ => None,
         });
-
-        // TODO: impl default
-        // TODO: impl constant
+        let default = t.params.get("default").map_or(None, |x| match &x.value {
+            ParamKind::String(s) => Some(s.clone()),
+            _ => None,
+        });
+        let constant = t.params.get("constant").map_or(None, |x| match &x.value {
+            ParamKind::String(s) => Some(s.clone()),
+            _ => None,
+        });
 
         Type {
             format: format.and_then(|x| StringFormats::from_str(x)),
             length,
             graphemes,
-            default: None,
-            constant: None,
+            default,
+            constant,
             loc: t.loc,
         }
     }
